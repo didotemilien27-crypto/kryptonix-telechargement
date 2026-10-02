@@ -1,0 +1,52 @@
+# ============================================================
+#  KRYPTONIX - Dépendances (100% gratuites, aucune clé API)
+#  Python 3.10 -> 3.12 recommandé
+#  Installation : pip install -r requirements.txt
+# ============================================================
+
+# --- Coeur / réseau ---
+requests==2.32.3
+
+# --- Dashboard web ---
+Flask==3.0.3
+
+# --- Fenêtre native de l'application (utilise WebView2 sur Windows) ---
+pywebview==5.3.2
+
+# --- HUD flottant (mode développeur uniquement : python lancer.py) ---
+customtkinter==5.2.2
+
+# --- Voix : écoute (STT) ---
+SpeechRecognition==3.10.4
+PyAudio==0.2.14            # Windows : pip install pipwin && pipwin install pyaudio
+                           # Linux   : sudo apt install portaudio19-dev python3-pyaudio
+                           # macOS   : brew install portaudio
+
+# --- Voix : parole (TTS) ---
+pyttsx3==2.90              # Voix du système, 100% hors-ligne (moteur de repli)
+edge-tts==6.1.19           # Voix neuronale Microsoft, gratuite, sans clé (la plus réaliste)
+gTTS==2.5.3                # Voix en ligne, dernier secours si edge-tts est bloqué par le réseau
+pygame==2.6.1              # Lecture des flux audio (edge-tts / gTTS / Piper)
+# Piper (optionnel, 100% hors-ligne, la plus réaliste sans connexion) :
+#   binaire + modèle .onnx à télécharger sur https://github.com/rhasspy/piper
+#   puis renseigner "piper_executable" et "piper_modele" dans config.json
+
+# --- Télémétrie matérielle & nettoyage disque ---
+psutil==6.0.0
+
+# --- Ingestion de documents ---
+pypdf==4.3.1
+
+# --- Calcul symbolique ---
+sympy==1.13.2
+
+# --- Rédaction de documents (Word, PDF, Excel) ---
+python-docx==1.1.2
+openpyxl==3.1.5
+fpdf2==2.7.9
+
+# --- Génération de sons et de vidéos (diaporamas), procédurale et locale ---
+Pillow==10.4.0
+imageio==2.35.1
+imageio-ffmpeg==0.5.1      # fournit un ffmpeg portable, aucune installation système requise
+

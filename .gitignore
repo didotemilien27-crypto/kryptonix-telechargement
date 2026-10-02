@@ -1,0 +1,11 @@
+.venv/
+build/
+dist/
+sortie/
+__pycache__/
+*.pyc
+donnees/*.db
+donnees/documents_*/
+logs/*.log
+sandbox/*
+!sandbox/.gitkeep
