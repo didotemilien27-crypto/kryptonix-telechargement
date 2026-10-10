@@ -1,0 +1,69 @@
+# ============================================================
+#  KRYPTONIX - Dépendances (100 % gratuites, aucune clé API)
+#  Python 3.12 recommandé
+#  Utilisées par la construction automatique (GitHub Actions) et par
+#  `pip install -r requirements.txt` pour tester en local (`python app.py`).
+# ============================================================
+
+# --- Coeur / réseau ---
+requests==2.32.3
+
+# --- Interface web + fenêtre native (WebView2 sur Windows) ---
+Flask==3.0.3
+pywebview==5.3.2
+
+# --- Voix : écoute (micro) ---
+SpeechRecognition==3.10.4
+PyAudio==0.2.14
+
+# --- Voix : parole ---
+# edge-tts >= 7 est INDISPENSABLE : les versions plus anciennes sont refusées par Microsoft (erreur 403)
+edge-tts>=7.2.1            # voix neuronales gratuites, sans clé (les plus réalistes, en ligne)
+pyttsx3==2.90              # voix installées sur Windows (hors ligne, repli automatique)
+pygame==2.6.1              # lecture audio
+
+# --- Compréhension des messages vocaux et des vidéos (transcription locale, hors ligne) ---
+# Le modèle (75 à 480 Mo) est téléchargé une seule fois, au premier usage. Sans cette librairie,
+# l'application bascule sur un mode secours en ligne (moins précis).
+faster-whisper>=1.1.0
+
+# --- Télémétrie matérielle & nettoyage disque ---
+psutil==6.0.0
+
+# --- Lecture de documents ---
+pypdf==4.3.1
+
+# --- Calcul symbolique (bac à sable) ---
+sympy==1.13.2
+
+# --- Rédaction de documents (Word, PDF, Excel) ---
+python-docx==1.1.2
+openpyxl==3.1.5
+fpdf2==2.7.9
+
+# --- Génération de sons et de vidéos (diaporamas), locale ---
+Pillow==10.4.0
+imageio==2.35.1
+imageio-ffmpeg==0.5.1
+
+# ============================================================
+#  MODULES « JARVIS » — dépendances OPTIONNELLES
+#  Kryptonix démarre sans elles : chaque module explique ce qui manque.
+#  (Rien à installer pour : Hue, agenda iCal, Gmail IMAP, Discord, Instagram, Twilio, OBS, MCP,
+#   finances, réseau/satellites, sons — ils n'utilisent que la bibliothèque standard + requests.)
+# ============================================================
+# Mot d'activation local « Hey Jarvis » (openWakeWord)
+#   openwakeword>=0.6.0
+# Navigateur piloté (résumé d'onglet, réservations) — se branche sur ton Chrome/Edge existant
+#   playwright>=1.45
+# Capture d'écran rapide (sinon Pillow est utilisé)
+#   mss>=9.0
+# Vault d'inspirations (TikTok / Instagram / YouTube)
+#   yt-dlp
+# Gestes de la main (webcam, 100 % local)
+#   opencv-python>=4.9
+#   mediapipe==0.10.14
+# Volume exact sous Windows
+#   pycaw
+# Lecture de texte à l'écran (OCR) : installer aussi le programme Tesseract
+#   pytesseract

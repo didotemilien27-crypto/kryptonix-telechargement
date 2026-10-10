@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ nom }} — Panneau de contrôle</title>
+<style>
+:root{--fond:#070b12;--carte:#0e1522;--arete:#1d2a3f;--texte:#d8e4f5;--doux:#7d90ad;--accent:#37d6ff;--ok:#3ddc97;--mal:#ff5d73;--att:#ffb84d}
+*{box-sizing:border-box}body{margin:0;background:var(--fond);color:var(--texte);font:14px/1.45 "Segoe UI",system-ui,sans-serif}
+header{display:flex;gap:14px;align-items:center;padding:14px 22px;border-bottom:1px solid var(--arete);position:sticky;top:0;background:#070b12ee;backdrop-filter:blur(6px);z-index:5;flex-wrap:wrap}
+h1{font-size:18px;margin:0;letter-spacing:.12em}h1 b{color:var(--accent)}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+nav{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
+main{max-width:1180px;margin:0 auto;padding:18px;display:grid;gap:16px}
+section{background:var(--carte);border:1px solid var(--arete);border-radius:10px;padding:16px 18px}
+h2{margin:0 0 12px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--doux)}
+.grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.mod{border:1px solid var(--arete);border-radius:8px;padding:10px 12px;background:#0a111c}
+.mod h3{margin:0 0 4px;font-size:14px;display:flex;gap:8px;align-items:center}
+.mod p{margin:0;color:var(--doux);font-size:12px}.mod code{color:var(--accent);font-size:11px;word-break:break-all}
+.pt{width:9px;height:9px;border-radius:50%;background:var(--doux);display:inline-block}.pt.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}.pt.mal{background:var(--mal)}.pt.att{background:var(--att)}
+button,select,input,textarea{font:inherit;color:var(--texte);background:#0a111c;border:1px solid var(--arete);border-radius:6px;padding:6px 10px}
+button{cursor:pointer}button:hover{border-color:var(--accent)}button.actif{background:var(--accent);color:#04202a;border-color:var(--accent);font-weight:600}
+.ligne{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0}
+label.champ{display:grid;gap:3px;font-size:12px;color:var(--doux)}label.champ input,label.champ textarea,label.champ select{width:100%;color:var(--texte)}
+textarea{min-height:60px;font-family:Consolas,monospace;font-size:12px}
+.barre{height:8px;background:#0a111c;border-radius:5px;overflow:hidden;border:1px solid var(--arete)}.barre i{display:block;height:100%;background:var(--ok)}
+table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1px solid var(--arete);text-align:left;font-size:13px}th{color:var(--doux);font-weight:500}
+.sons{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}.sons button{text-align:left}
+.etiq{font-size:11px;padding:2px 7px;border-radius:9px;border:1px solid var(--arete);color:var(--doux)}
+#msg{position:fixed;bottom:16px;right:16px;background:var(--carte);border:1px solid var(--accent);padding:10px 14px;border-radius:8px;display:none;max-width:360px;z-index:9}
+pre{background:#0a111c;border:1px solid var(--arete);border-radius:6px;padding:10px;overflow:auto;font-size:12px}
+.cfg{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+details{border:1px solid var(--arete);border-radius:8px;padding:8px 12px;margin:8px 0;background:#0a111c}summary{cursor:pointer;color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <h1>{{ nom|upper }} <b>·</b> PANNEAU</h1>
+  <span class="etiq" id="p-cerveau">cerveau…</span><span class="etiq" id="p-mode">mode…</span>
+  <span class="etiq" id="p-perso">personnalité…</span><span class="etiq" id="p-voix">voix…</span>
+  <nav><a href="/">← Assistant</a><a href="/finances">Cockpit financier</a></nav>
+</header>
+<main>
+<section><h2>État de la chaîne</h2><div class="grille" id="modules"></div></section>
+
+<section><h2>Intelligence — modes et budget</h2>
+  <div class="ligne" id="modes"></div>
+  <div class="ligne"><span>Dépense du mois :</span><b id="ia-dep">—</b><span>/ plafond</span><b id="ia-bud">—</b><div class="barre" style="flex:1;min-width:140px"><i id="ia-barre" style="width:0"></i></div></div>
+  <p style="color:var(--doux);margin:4px 0">Dernier moteur utilisé : <b id="ia-moteur">—</b> · appels cloud ce mois : <b id="ia-appels">0</b> · <span id="ia-alerte"></span></p>
+  <div class="cfg" id="cfg-ia"></div>
+</section>
+
+<section><h2>Voix, personnalité et écoute</h2>
+  <div class="ligne" id="personnalites"></div>
+  <div class="cfg" id="cfg-voix"></div>
+</section>
+
+<section><h2>Sécurité — niveaux et permissions</h2>
+  <p style="color:var(--doux);margin:0 0 8px">N1 = libre · N2 = confirmation vocale · N3 = confirmation stricte + délai d'annulation (jamais « toujours autorisé »).</p>
+  <div class="ligne"><button onclick="revoquerTout()">Révoquer toutes les autorisations permanentes</button></div>
+  <table><thead><tr><th>Action</th><th>Domaine</th><th>Niveau</th><th>Toujours autoriser</th></tr></thead><tbody id="perms"></tbody></table>
+</section>
+
+<section><h2>Effets sonores</h2>
+  <div class="ligne"><label><input type="checkbox" id="sons-actifs"> Sons actifs</label>
+  <label>Volume <input type="range" id="sons-vol" min="0" max="100" style="width:140px"></label><span id="sons-n" class="etiq"></span></div>
+  <div class="sons" id="sons"></div>
+</section>
+
+<section><h2>Réglages des modules</h2><p style="color:var(--doux);margin:0 0 6px">Les secrets (clés, jetons, mots de passe) ne s'affichent jamais : laisse « ●●●●●● » pour ne rien changer.</p>
+  <div id="cfg-modules"></div>
+  <div class="ligne"><button class="actif" onclick="sauver()">Enregistrer les réglages</button></div>
+</section>
+
+<section><h2>Réseau, satellites et MCP</h2><div id="reseau"></div></section>
+</main>
+<div id="msg"></div>
+<script>
+const $=s=>document.querySelector(s);const J=(u,o)=>fetch(u,o).then(r=>r.json());
+const P=(u,d,m='POST')=>J(u,{method:m,headers:{'Content-Type':'application/json'},body:JSON.stringify(d||{})});
+function dire(t){const m=$('#msg');m.textContent=t;m.style.display='block';clearTimeout(dire.t);dire.t=setTimeout(()=>m.style.display='none',4200)}
+const GROUPES={ia:['mode_ia','fournisseur_llm','llm_modele_quotidien','llm_modele_qualite','budget_mensuel','openai_base_url','cloud_documents','cles_api'],
+voix:['personnalite_voix','stt_moteur','wakeword_actif','wakeword_modele','wakeword_seuil','sons_reflexion','delai_securite_n3']};
+const MODULES={'Domotique & PC':['hue_pont','presence_actif','presence_telephones','presence_scene_depart','presence_scene_retour','wol_machines','applications'],
+'Agenda & mails':['agenda_ical','google_calendriers','google_client_id','google_client_secret','google_refresh_token','gmail_adresse','gmail_mot_de_passe_app'],
+'Réseaux sociaux':['discord_token','discord_salons','discord_utilisateur_id','discord_ecoute','instagram_comptes'],
+'Téléphone (Twilio)':['twilio_sid','twilio_token','twilio_numero','twilio_url_publique','twilio_contacts','twilio_repondre_entrants'],
+'OBS & navigateur':['obs_hote','obs_port','obs_mot_de_passe','navigateur_cdp'],
+'Agent, réseau, MCP, gestes':['agent_modele','agent_url','agent_actions','reseau_actif','reseau_port','satellite_tts_serveur','satellite_exige_mot_reveil','mcp_actif','mcp_domaines','gestes_actif']};
+let CFG={},CHANGES={};
+function champ(cle){const r=CFG[cle];if(!r)return '';let v=r.valeur,h='';const id='c-'+cle;
+ if(r.type==='bool')h=`<label class="champ"><span>${cle}</span><select id="${id}"><option value="true" ${v?'selected':''}>oui</option><option value="false" ${!v?'selected':''}>non</option></select></label>`;
+ else if(r.type==='choix')h=`<label class="champ"><span>${cle}</span><select id="${id}">${r.contrainte.map(o=>`<option ${o==v?'selected':''}>${o}</option>`).join('')}</select></label>`;
+ else if(r.type==='json'||r.type==='liste'){const t=r.secret&&r.defini?'●●●●●●':(r.type==='json'?(v&&Object.keys(v).length!==0?JSON.stringify(v,null,1):''):(v||[]).join('\n'));h=`<label class="champ"><span>${cle}</span><textarea id="${id}">${t}</textarea></label>`}
+ else h=`<label class="champ"><span>${cle}</span><input id="${id}" ${r.secret?'type="password"':''} value="${(v??'').toString().replace(/"/g,'&quot;')}"></label>`;
+ return h}
+async function charger(){
+ const s=await J('/api/extensions/statut');
+ $('#p-cerveau').textContent='cerveau '+(s.cerveau.disponible?s.cerveau.modele:'hors ligne');
+ $('#p-mode').textContent='IA : '+s.ia.mode;$('#p-perso').textContent=s.personnalites[s.personnalite]||s.personnalite;$('#p-voix').textContent='voix '+s.voix+' · micro '+(s.micro?'ok':'non');
+ $('#modules').innerHTML=Object.entries(s.modules).map(([n,m])=>{const {description,exemples,erreur,...reste}=m;
+  const ok=!erreur&&!(reste.configure===false||reste.hue_configure===false);
+  const infos=Object.entries(reste).filter(([k,v])=>typeof v!=='object').slice(0,4).map(([k,v])=>`${k}: ${v}`).join(' · ');
+  return `<div class="mod"><h3><i class="pt ${erreur?'mal':ok?'ok':'att'}"></i>${n}</h3><p>${description}</p><p><code>${infos}</code></p>${(exemples||[]).length?`<p style="margin-top:4px">« ${exemples[0]} »</p>`:''}</div>`}).join('')
+  +Object.entries(s.pannes).map(([n,e])=>`<div class="mod"><h3><i class="pt mal"></i>${n}</h3><p>${e}</p></div>`).join('');
+ const ia=s.ia;$('#modes').innerHTML=['local','hybride','qualite'].map(m=>`<button class="${ia.mode===m?'actif':''}" onclick="mode('${m}')">${m}</button>`).join('')+`<span class="etiq">${ia.cloud_pret?'clé cloud présente':'aucune clé cloud'}</span>`;
+ $('#ia-dep').textContent=ia.depense_mois.toFixed(3)+' $';$('#ia-bud').textContent=ia.budget.toFixed(2)+' $';
+ $('#ia-barre').style.width=Math.min(100,ia.budget?ia.depense_mois/ia.budget*100:0)+'%';$('#ia-barre').style.background=ia.plafond_atteint?'var(--mal)':'var(--ok)';
+ $('#ia-moteur').textContent=ia.dernier_moteur;$('#ia-appels').textContent=ia.appels;$('#ia-alerte').textContent=ia.plafond_atteint?'⚠ plafond atteint : retour en local':(ia.erreur?'⚠ '+ia.erreur:'');
+ $('#personnalites').innerHTML=Object.entries(s.personnalites).map(([k,l])=>`<button class="${s.personnalite===k?'actif':''}" onclick="perso('${k}')">${l}</button>`).join('');
+}
+async function cfg(){CFG=(await J('/api/extensions/config')).reglages;
+ $('#cfg-ia').innerHTML=GROUPES.ia.map(champ).join('');$('#cfg-voix').innerHTML=GROUPES.voix.map(champ).join('');
+ $('#cfg-modules').innerHTML=Object.entries(MODULES).map(([t,ks])=>`<details><summary>${t}</summary><div class="cfg" style="margin-top:8px">${ks.map(champ).join('')}</div></details>`).join('')}
+async function sauver(){const d={};for(const k in CFG){const e=document.getElementById('c-'+k);if(!e)continue;const r=CFG[k];let v=e.value;
+ if(r.secret&&(v==='●●●●●●'||v===''&&!r.defini))continue;if(r.type==='bool')v=v==='true';
+ if(r.type==='json'&&!(r.secret&&v==='●●●●●●')){try{v=v.trim()?JSON.parse(v):{}}catch(x){dire('JSON invalide dans '+k);return}}
+ if(r.secret&&v==='●●●●●●')v='••••••';d[k]=v}
+ const r=await P('/api/extensions/config',d);dire(r.succes?'Réglages enregistrés ✔':'Erreurs : '+JSON.stringify(r.erreurs));cfg();charger()}
+async function mode(m){await P('/api/extensions/config',{mode_ia:m});charger();cfg()}
+async function perso(p){await P('/api/extensions/config',{personnalite:p});dire('Personnalité : '+p);charger()}
+async function perms(){const r=await J('/api/permissions');$('#perms').innerHTML=r.outils.map(o=>`<tr><td><b>${o.nom}</b><br><span style="color:var(--doux);font-size:12px">${o.description}</span></td><td>${o.domaine}</td>
+ <td><select onchange="niveau('${o.nom}',this.value)">${[1,2,3].map(n=>`<option ${n==o.niveau?'selected':''}>${n}</option>`).join('')}</select></td>
+ <td><input type="checkbox" ${o.toujours?'checked':''} ${o.niveau>=3?'disabled':''} onchange="toujours('${o.nom}',this.checked)"></td></tr>`).join('')}
+async function niveau(n,v){const r=await P('/api/permissions',{nom:n,niveau:+v});if(!r.succes)dire(r.erreur);perms()}
+async function toujours(n,v){const r=await P('/api/permissions',{nom:n,toujours:v});if(!r.succes)dire(r.erreur);perms()}
+async function revoquerTout(){const r=await P('/api/permissions/revoquer');dire(r.revoquees+' autorisation(s) révoquée(s)');perms()}
+async function sons(){const r=await J('/api/sons');$('#sons-actifs').checked=r.actifs;$('#sons-vol').value=r.volume;$('#sons-n').textContent=r.sons.length+' sons';
+ $('#sons').innerHTML=r.sons.map(s=>`<button onclick="jouer('${s.nom}')" title="${s.nom}">▶ ${s.description}</button>`).join('')}
+function jouer(n){const a=new Audio('/api/sons/'+n+'.wav');a.volume=(+$('#sons-vol').value)/100;a.play().catch(()=>P('/api/sons/jouer',{nom:n}))}
+$('#sons-actifs').onchange=e=>P('/api/extensions/config',{sons_actifs:e.target.checked});
+$('#sons-vol').onchange=e=>P('/api/extensions/config',{sons_volume:+e.target.value});
+async function reseau(){const r=await J('/api/reseau');const base=location.hostname;
+ $('#reseau').innerHTML=`<p>Serveur réseau local : <b>${r.actif?'actif sur le port '+r.port:'désactivé'}</b> (active-le dans « Agent, réseau, MCP, gestes »).</p>
+ <p>Jeton réseau (mobile, satellites) : <code>${r.jeton}</code></p>
+ <p>Satellites : ${r.pieces.length?r.pieces.map(p=>`<span class="etiq">${p.piece} ${p.en_ligne?'● en ligne':'○ hors ligne'}</span>`).join(' '):'aucun'}</p>
+ <p>Outils exposés en MCP (${r.mcp_outils.length}) : <span style="color:var(--doux)">${r.mcp_outils.join(', ')||'aucun'}</span></p>
+ <p>Configuration Claude Desktop (<code>claude_desktop_config.json</code>) :</p>
+ <pre>{ "mcpServers": { "kryptonix": { "command": "python", "args": ["CHEMIN/vers/mcp_kryptonix.py"],
+   "env": { "KRYPTONIX_URL": "http://127.0.0.1:5000/mcp", "KRYPTONIX_JETON": "${r.mcp_jeton}" } } } }</pre>`}
+charger();cfg();perms();sons();reseau();setInterval(charger,6000);
+</script>
+</body>
+</html>

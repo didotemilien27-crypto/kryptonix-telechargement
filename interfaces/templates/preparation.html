@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KRYPTONIX</title>
+<style>
+:root{--fond:#06080d;--panneau:#0e141d;--arete:#1b2735;--cristal:#8fd9ff;--givre:#e6f1f8;--texte:#b9c9d6;--sourd:#5d6e7e;--signal:#ff6b6b}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;background:var(--fond);color:var(--texte);font-family:'Segoe UI',system-ui,sans-serif}
+body{display:flex;align-items:center;justify-content:center;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 35%,#0f1c2b 0%,var(--fond) 65%)}
+main{width:min(520px,90vw);text-align:center}
+.logo{font-size:44px;font-weight:700;letter-spacing:.35em;color:var(--givre);padding-left:.35em;
+  text-shadow:0 0 28px rgba(143,217,255,.35)}
+.sous{color:var(--sourd);font-size:13px;letter-spacing:.2em;text-transform:uppercase;margin:6px 0 44px}
+.anneau{width:74px;height:74px;margin:0 auto 34px;border-radius:50%;
+  border:2px solid var(--arete);border-top-color:var(--cristal);animation:tour 1.1s linear infinite}
+.erreur .anneau{animation:none;border-color:var(--signal)}
+.pret .anneau{animation:none;border-color:var(--cristal)}
+@keyframes tour{to{transform:rotate(360deg)}}
+.barre{height:6px;background:var(--panneau);border:1px solid var(--arete);border-radius:6px;overflow:hidden}
+.barre>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4a7f9c,var(--cristal));transition:width .4s}
+#msg{margin-top:18px;font-size:15px;color:var(--givre);min-height:22px}
+#info{margin-top:8px;font-size:12.5px;color:var(--sourd);line-height:1.6}
+.boutons{margin-top:28px;display:flex;gap:12px;justify-content:center}
+button{background:transparent;color:var(--cristal);border:1px solid var(--cristal);padding:10px 22px;
+  font-size:14px;border-radius:6px;cursor:pointer}
+button:hover{background:rgba(143,217,255,.12)}
+button.secondaire{color:var(--sourd);border-color:var(--arete)}
+.cache{display:none}
+footer{position:fixed;bottom:16px;left:0;right:0;text-align:center;color:#33414f;font-size:11px}
+</style>
+</head>
+<body>
+<main id="m">
+  <div class="logo">KRYPTONIX</div>
+  <div class="sous">intelligence locale</div>
+  <div class="anneau"></div>
+  <div class="barre"><i id="b"></i></div>
+  <div id="msg">Démarrage…</div>
+  <div id="info">La première fois, l'application prépare son moteur d'IA.<br>
+  Cela prend quelques minutes, une seule fois. Ne ferme pas la fenêtre.</div>
+  <div class="boutons cache" id="boutons">
+    <button id="reessayer">Réessayer</button>
+    <button id="continuer" class="secondaire cache">Continuer sans IA</button>
+  </div>
+</main>
+<footer>version {{ version }}</footer>
+<script>
+const m=document.getElementById('m'), b=document.getElementById('b'),
+      msg=document.getElementById('msg'), info=document.getElementById('info'),
+      boutons=document.getElementById('boutons'), cont=document.getElementById('continuer');
+let termine=false;
+async function tick(){
+  if(termine) return;
+  try{
+    const e=await (await fetch('/api/etat')).json();
+    b.style.width=e.pourcentage+'%';
+    if(e.erreur){
+      m.className='erreur'; msg.textContent=e.erreur; info.textContent='';
+      boutons.classList.remove('cache'); cont.classList.toggle('cache',!e.peut_continuer);
+    } else {
+      m.className=''; boutons.classList.add('cache'); msg.textContent=e.message;
+    }
+    if(e.pret && e.url){ termine=true; m.className='pret'; msg.textContent='Prêt.';
+      setTimeout(()=>{location.href=e.url},400); return; }
+  }catch(x){}
+  setTimeout(tick,700);
+}
+document.getElementById('reessayer').onclick=async()=>{await fetch('/api/reessayer',{method:'POST'});};
+cont.onclick=async()=>{await fetch('/api/continuer',{method:'POST'});};
+tick();
+</script>
+</body>
+</html>

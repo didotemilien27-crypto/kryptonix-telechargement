@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KRYPTONIX — console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --fond:#06080d;
+  --faille:#0b1018;
+  --panneau:#0e141d;
+  --arete:#1b2735;
+  --cristal:#8fd9ff;
+  --cristal-sourd:#4a7f9c;
+  --givre:#e6f1f8;
+  --texte:#b9c9d6;
+  --sourd:#5d6e7e;
+  --signal:#ff4d4d;
+  --ambre:#ffc266;
+  --rayon:0px;
+  --echelle:1;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --titre:'Chakra Petch','Segoe UI',system-ui,sans-serif;
+  box-sizing:border-box;
+}
+/* --- palettes de couleurs (réglables dans l'onglet Réglages) --- */
+:root[data-palette="ambre"]{--cristal:#ffc266;--cristal-sourd:#a67a3c;--signal:#ff4d4d}
+:root[data-palette="magenta"]{--cristal:#ff8fd9;--cristal-sourd:#9c4a7f;--signal:#ff4d8f}
+:root[data-palette="emeraude"]{--cristal:#8fffc2;--cristal-sourd:#4a9c6f;--signal:#ff6d4d}
+:root[data-palette="violet"]{--cristal:#c28fff;--cristal-sourd:#7a4a9c;--signal:#ff4d8f}
+:root[data-palette="mono"]{--cristal:#e6e6e6;--cristal-sourd:#8a8a8a;--signal:#ff4d4d}
+/* --- forme des éléments (angles nets ou arrondis) --- */
+:root[data-forme="douce"]{--rayon:12px}
+:root[data-forme="douce"] .bloc,:root[data-forme="douce"] .bouton,
+:root[data-forme="douce"] input,:root[data-forme="douce"] textarea,
+:root[data-forme="douce"] .doc,:root[data-forme="douce"] .terminal,
+:root[data-forme="douce"] pre,:root[data-forme="douce"] #toile-jeu,
+:root[data-forme="douce"] .depot,
+:root[data-forme="douce"] select{border-radius:var(--rayon)!important}
+/* --- taille de l'interface (police et espacements) --- */
+:root[data-taille="compacte"]{--echelle:.9}
+:root[data-taille="grande"]{--echelle:1.18}
+*,*::before,*::after{box-sizing:inherit;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--fond);
+  color:var(--texte);
+  font-family:var(--titre);
+  font-size:calc(15px * var(--echelle));
+  line-height:1.5;
+  overflow:hidden;
+  background-image:
+    radial-gradient(ellipse at 18% -10%,rgba(143,217,255,.10),transparent 55%),
+    radial-gradient(ellipse at 100% 110%,rgba(255,77,77,.07),transparent 50%);
+}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+:focus-visible{outline:2px solid var(--cristal);outline-offset:2px}
+
+/* ---------- ossature ---------- */
+.grille{
+  display:grid;
+  grid-template-columns:270px minmax(0,1fr) 300px;
+  grid-template-rows:auto auto minmax(0,1fr);
+  height:100%;
+  gap:1px;
+  background:var(--arete);
+}
+.bandeau{
+  grid-column:1/-1;
+  background:var(--faille);
+  display:flex;align-items:center;gap:22px;
+  padding:14px 22px;
+}
+
+/* --- fil d'infos --- */
+.ticker{
+  grid-column:1/-1;background:var(--panneau);border-top:1px solid var(--arete);
+  overflow:hidden;white-space:nowrap;padding:7px 0;position:relative;
+}
+.ticker .rail{
+  display:inline-block;padding-left:100%;font-family:var(--mono);font-size:.78rem;
+  color:var(--texte);animation:defiler 55s linear infinite; /* durée recalculée par réglage */
+}
+.ticker .rail span{color:var(--cristal-sourd);margin:0 10px}
+.ticker:hover .rail{animation-play-state:paused}
+.ticker.fixe .rail{animation:none;padding-left:14px}
+@keyframes defiler{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+.sceau{display:flex;align-items:baseline;gap:12px}
+.sceau h1{
+  font-size:1.35rem;font-weight:700;letter-spacing:.34em;
+  color:var(--givre);
+}
+.sceau .eclat{color:var(--cristal);text-shadow:0 0 18px rgba(143,217,255,.65)}
+.sceau p{font-size:.78rem;color:var(--sourd);letter-spacing:.06em}
+.jauges{margin-left:auto;display:flex;align-items:center;gap:18px;font-family:var(--mono);font-size:.78rem}
+.jauge{display:flex;align-items:center;gap:7px;color:var(--sourd)}
+.diode{width:7px;height:7px;border-radius:50%;background:var(--sourd);flex:none}
+.diode.vive{background:var(--cristal);box-shadow:0 0 9px var(--cristal)}
+.diode.rouge{background:var(--signal);box-shadow:0 0 9px var(--signal)}
+#horloge{color:var(--givre);font-family:var(--mono);font-size:.85rem}
+.lien-jeu{
+  font-family:var(--mono);font-size:.75rem;letter-spacing:.08em;color:var(--sourd);
+  background:none;border:1px solid var(--arete);padding:2px 9px;cursor:pointer;
+}
+.lien-jeu:hover,.lien-jeu[aria-pressed="true"]{color:var(--cristal);border-color:var(--cristal-sourd)}
+
+/* ---------- colonnes ---------- */
+.colonne{background:var(--panneau);overflow-y:auto;padding:18px 16px;display:flex;flex-direction:column;gap:20px}
+.bloc h2{
+  font-family:var(--mono);font-size:.72rem;font-weight:500;
+  color:var(--cristal-sourd);letter-spacing:.18em;margin-bottom:10px;
+}
+
+/* --- cristaux de télémétrie --- */
+.cristal{margin-bottom:14px}
+.cristal .ligne{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.8rem;margin-bottom:5px}
+.cristal .ligne .val{color:var(--givre)}
+.barre{height:3px;background:#16202c;position:relative;overflow:hidden}
+.barre span{display:block;height:100%;width:0;background:var(--cristal);transition:width .45s ease}
+.barre span.chaud{background:var(--ambre)}
+.barre span.critique{background:var(--signal)}
+.fiche{display:flex;justify-content:space-between;font-family:var(--mono);font-size:.78rem;padding:4px 0;border-bottom:1px solid #131c26}
+.fiche:last-child{border-bottom:none}
+.fiche .cle{color:var(--sourd)}
+.fiche .val{color:var(--givre);text-align:right;max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* --- terminal --- */
+.centre{background:var(--panneau);display:flex;flex-direction:column;min-height:0}
+.onglets{display:flex;border-bottom:1px solid var(--arete)}
+.onglet{
+  padding:11px 20px;font-family:var(--mono);font-size:.76rem;letter-spacing:.12em;
+  color:var(--sourd);border-bottom:2px solid transparent;
+}
+.onglet[aria-selected="true"]{color:var(--cristal);border-bottom-color:var(--cristal)}
+.vue{flex:1;min-height:0;display:none;flex-direction:column}
+.vue.visible{display:flex}
+
+#journal{flex:1;overflow-y:auto;padding:18px 22px;font-family:var(--mono);font-size:.86rem;scroll-behavior:smooth}
+.tour{margin-bottom:16px;max-width:74ch}
+.tour .qui{font-size:.68rem;letter-spacing:.16em;color:var(--sourd);margin-bottom:4px}
+.tour.moi .qui{color:var(--cristal-sourd)}
+.tour .dit{white-space:pre-wrap;word-break:break-word}
+.tour.moi .dit{color:var(--givre)}
+.tour.lui .dit{color:var(--cristal);border-left:2px solid rgba(143,217,255,.35);padding-left:12px}
+.tour.systeme .dit{color:var(--ambre);font-size:.8rem}
+.tour.alerte .dit{color:var(--signal)}
+.curseur::after{content:"▌";animation:clignote 1s steps(2) infinite;color:var(--cristal)}
+@keyframes clignote{50%{opacity:0}}
+
+.saisie{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--arete);align-items:center}
+.saisie input[type=text]{
+  flex:1;background:var(--faille);border:1px solid var(--arete);
+  padding:11px 14px;font-family:var(--mono);font-size:.86rem;color:var(--givre);
+}
+.saisie input[type=text]::placeholder{color:#3f4d5c}
+.bouton{
+  border:1px solid var(--cristal);color:var(--cristal);padding:11px 16px;
+  font-family:var(--mono);font-size:.76rem;letter-spacing:.1em;
+  transition:background .2s ease,color .2s ease;
+}
+.bouton:hover{background:var(--cristal);color:var(--fond)}
+.bouton.sourd{border-color:var(--arete);color:var(--sourd)}
+.bouton.sourd:hover{background:var(--arete);color:var(--givre)}
+.bouton.rouge{border-color:var(--signal);color:var(--signal)}
+.bouton.rouge:hover{background:var(--signal);color:var(--fond)}
+
+/* --- sandbox --- */
+#zone-code{
+  flex:1;min-height:0;background:var(--faille);border:none;border-bottom:1px solid var(--arete);
+  padding:18px 22px;font-family:var(--mono);font-size:.86rem;color:var(--givre);resize:none;
+}
+#sortie-code{
+  max-height:38%;overflow-y:auto;padding:14px 22px;font-family:var(--mono);
+  font-size:.82rem;white-space:pre-wrap;color:var(--texte);
+}
+#sortie-code.echec{color:var(--signal)}
+
+/* --- documents --- */
+.depot{
+  border:1px dashed var(--cristal-sourd);padding:18px 14px;text-align:center;
+  font-size:.82rem;color:var(--sourd);transition:background .2s ease;
+}
+.depot.survol{background:rgba(143,217,255,.08);color:var(--cristal)}
+.depot input{display:none}
+.depot label{color:var(--cristal);cursor:pointer;text-decoration:underline}
+.doc{padding:9px 0;border-bottom:1px solid #131c26;cursor:pointer}
+.doc:hover .nom{color:var(--cristal)}
+.doc .nom{font-family:var(--mono);font-size:.8rem;color:var(--givre);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc .meta{font-family:var(--mono);font-size:.68rem;color:var(--sourd)}
+.vide{font-size:.8rem;color:var(--sourd)}
+
+/* --- météo --- */
+.meteo-corps{display:flex;align-items:center;gap:12px}
+.meteo-symbole{font-size:2.1rem;line-height:1}
+.meteo-temp{font-family:var(--titre);font-size:1.5rem;color:var(--givre);font-weight:700}
+.meteo-desc{font-size:.76rem;color:var(--sourd);text-transform:capitalize}
+.meteo-detail{font-family:var(--mono);font-size:.7rem;color:var(--sourd);margin-top:6px}
+
+/* --- question ciblée sur un document --- */
+.doc-question{display:none;gap:6px;margin-top:6px}
+.doc.ouvert .doc-question{display:flex}
+.doc-question input{
+  flex:1;background:var(--faille);border:1px solid var(--arete);color:var(--givre);
+  font-family:var(--mono);font-size:.72rem;padding:6px 8px;
+}
+.doc-question button{
+  border:1px solid var(--cristal-sourd);color:var(--cristal-sourd);
+  font-family:var(--mono);font-size:.68rem;padding:0 10px;
+}
+.doc-actions{display:flex;gap:10px;margin-top:2px}
+.doc-actions a,.doc-actions button.lien{
+  font-family:var(--mono);font-size:.68rem;color:var(--cristal-sourd);
+  text-decoration:underline;background:none;border:none;padding:0;
+}
+
+/* --- petit jeu d'arcade, sur le côté : aux couleurs des réglages --- */
+.jeu{
+  display:none;flex-direction:column;gap:8px;
+  position:sticky;bottom:0;z-index:2;margin:0 -16px -18px;padding:12px 16px 14px;
+  background:var(--panneau);border-top:1px solid var(--arete);
+}
+.jeu.visible{display:flex}
+.jeu h2{margin-bottom:0}
+.jeu-entete{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--mono);font-size:.68rem;color:var(--sourd);letter-spacing:.06em;
+}
+.jeu-entete #jeu-score{color:var(--givre)}
+.jeu-entete .espace{flex:1}
+.jeu-entete button{
+  font:inherit;color:var(--cristal-sourd);text-decoration:underline;
+  background:none;border:none;padding:0;cursor:pointer;
+}
+.jeu-entete button:hover{color:var(--cristal)}
+#toile-jeu{
+  display:block;box-sizing:content-box;margin:0 auto;max-width:100%;touch-action:none;cursor:grab;outline:none;
+  background:var(--faille);border:1px solid var(--arete);
+}
+#toile-jeu:active{cursor:grabbing}
+#toile-jeu:focus-visible{border-color:var(--cristal-sourd)}
+.jeu-aide{font-family:var(--mono);font-size:.64rem;line-height:1.5;color:var(--sourd);text-align:center}
+/* la barre du jeu touche les bords de la colonne : pas d'angles arrondis (le jeu, lui, suit « Forme des éléments ») */
+:root[data-forme="douce"] .jeu{border-radius:0!important}
+
+/* --- réglages d'apparence et de voix --- */
+#vue-reglages{padding:26px 30px;overflow-y:auto}
+.reglage-groupe{margin-bottom:34px;max-width:520px}
+.reglage-groupe h3{color:var(--givre);font-size:.92rem;letter-spacing:.06em;margin-bottom:14px}
+.reglage-ligne{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
+.reglage-ligne label{font-family:var(--mono);font-size:.78rem;color:var(--sourd)}
+.reglage-ligne select,.reglage-ligne input[type=range]{
+  background:var(--panneau);border:1px solid var(--arete);color:var(--givre);
+  font-family:var(--mono);font-size:.78rem;padding:7px 10px;
+}
+.reglage-ligne input[type=range]{padding:0;width:160px;accent-color:var(--cristal)}
+.nuances{display:flex;gap:10px}
+.nuance{
+  width:30px;height:30px;border:2px solid var(--arete);cursor:pointer;padding:0;
+  background:var(--case,var(--cristal));border-radius:var(--rayon);
+}
+.nuance[aria-pressed="true"]{border-color:var(--givre)}
+.formes,.tailles{display:flex;gap:8px}
+.formes button,.tailles button{
+  border:1px solid var(--arete);background:var(--panneau);color:var(--sourd);
+  font-family:var(--mono);font-size:.74rem;padding:8px 14px;cursor:pointer;
+}
+.formes button[aria-pressed="true"],.tailles button[aria-pressed="true"]{
+  color:var(--cristal);border-color:var(--cristal);
+}
+.reglage-etat{font-family:var(--mono);font-size:.72rem;color:var(--cristal-sourd);min-height:1.2em}
+
+/* --- aperçu HTML / CSS (cadre isolé : scripts oui, réseau non) --- */
+#apercu-code{display:none;flex:1;min-height:200px;border:0;border-top:1px solid var(--arete);background:#fff}
+#apercu-code.visible{display:block}
+
+/* --- réglages : champs et blocs complémentaires --- */
+.reglage-ligne label{flex:1}
+.reglage-ligne .valeur{font-family:var(--mono);font-size:.72rem;color:var(--cristal-sourd);min-width:92px;text-align:right}
+.reglage-ligne select{max-width:250px}
+.reglage-ligne input[type=text]{
+  background:var(--panneau);border:1px solid var(--arete);color:var(--givre);
+  font-family:var(--mono);font-size:.78rem;padding:7px 10px;width:210px;
+}
+.reglage-ligne input[type=checkbox]{width:18px;height:18px;accent-color:var(--cristal);cursor:pointer}
+.reglage-bloc{margin-bottom:14px}
+.reglage-bloc label{display:block;font-family:var(--mono);font-size:.78rem;color:var(--sourd);margin-bottom:8px}
+.reglage-bloc textarea{
+  width:100%;background:var(--panneau);border:1px solid var(--arete);color:var(--givre);
+  font-family:var(--mono);font-size:.74rem;padding:8px 10px;resize:vertical;margin-bottom:8px;
+}
+.reglage-groupe .aide{font-size:.72rem;color:var(--sourd);line-height:1.5;margin-top:-4px}
+.reglage-etat.avert{color:#ffc266}
+.reglage-etat.erreur{color:var(--signal)}
+#etat-reglages{position:sticky;bottom:0;background:var(--fond);padding:8px 0;border-top:1px solid var(--arete)}
+#etat-reglages:empty{display:none}
+.bouton:disabled{opacity:.5;cursor:wait}
+
+.colonne::-webkit-scrollbar,#journal::-webkit-scrollbar,#sortie-code::-webkit-scrollbar{width:8px}
+.colonne::-webkit-scrollbar-thumb,#journal::-webkit-scrollbar-thumb,#sortie-code::-webkit-scrollbar-thumb{background:#1b2735}
+
+@media (max-width:1080px){
+  body{overflow:auto}
+  .grille{grid-template-columns:1fr;height:auto}
+  .colonne{max-height:none}
+  .centre{min-height:70vh}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+}
+</style>
+</head>
+<body>
+<div class="grille">
+
+  <!-- ================= BANDEAU ================= -->
+  <header class="bandeau">
+    <div class="sceau">
+      <h1>KRYPTONI<span class="eclat">X</span></h1>
+      <p>cerveau local &middot; mémoire permanente &middot; rien ne sort d'ici</p>
+    </div>
+    <div class="jauges">
+      <span class="jauge"><i class="diode" id="d-ollama"></i><span id="t-ollama">cerveau</span></span>
+      <span class="jauge"><i class="diode" id="d-micro"></i><span id="t-micro">micro</span></span>
+      <span class="jauge"><i class="diode" id="d-etat"></i><span id="t-etat">veille</span></span>
+      <button type="button" class="lien-jeu" id="btn-jeu" title="Petit jeu de pause : le sauteur">jeu</button>
+      <a class="lien-jeu" href="/panneau" target="_blank" rel="noopener" title="Panneau de contrôle : modes IA, voix, permissions, modules" style="text-decoration:none">panneau</a>
+      <a class="lien-jeu" href="/finances" target="_blank" rel="noopener" title="Cockpit financier 100 % local" style="text-decoration:none">finances</a>
+      <span id="horloge">--:--:--</span>
+    </div>
+  </header>
+
+  <!-- ================= FIL D'INFOS ================= -->
+  <div class="ticker">
+    <div class="rail" id="rail-actus">Chargement des actualités…</div>
+  </div>
+
+  <!-- ================= TÉLÉMÉTRIE ================= -->
+  <aside class="colonne">
+    <section class="bloc">
+      <h2>Météo</h2>
+      <div class="meteo-corps">
+        <span class="meteo-symbole" id="meteo-symbole">—</span>
+        <div>
+          <div class="meteo-temp" id="meteo-temp">—</div>
+          <div class="meteo-desc" id="meteo-desc">chargement…</div>
+        </div>
+      </div>
+      <div class="meteo-detail" id="meteo-detail"></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Machine</h2>
+      <div class="cristal">
+        <div class="ligne"><span>Processeur</span><span class="val" id="v-cpu">—</span></div>
+        <div class="barre"><span id="b-cpu"></span></div>
+      </div>
+      <div class="cristal">
+        <div class="ligne"><span>Mémoire vive</span><span class="val" id="v-ram">—</span></div>
+        <div class="barre"><span id="b-ram"></span></div>
+      </div>
+      <div class="cristal">
+        <div class="ligne"><span>Disque</span><span class="val" id="v-disque">—</span></div>
+        <div class="barre"><span id="b-disque"></span></div>
+      </div>
+      <div class="fiche"><span class="cle">Système</span><span class="val" id="v-os">—</span></div>
+      <div class="fiche"><span class="cle">Processus</span><span class="val" id="v-proc">—</span></div>
+      <div class="fiche"><span class="cle">Batterie</span><span class="val" id="v-bat">—</span></div>
+      <div class="fiche"><span class="cle">Température</span><span class="val" id="v-temp">—</span></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Noyau</h2>
+      <div class="fiche"><span class="cle">Modèle</span><span class="val" id="v-modele">—</span></div>
+      <div class="fiche"><span class="cle">Voix</span><span class="val" id="v-voix">—</span></div>
+      <div class="fiche"><span class="cle">Registre lu</span><span class="val" id="v-registre">—</span></div>
+      <div class="fiche"><span class="cle">Échanges</span><span class="val" id="v-msg">—</span></div>
+      <div class="fiche"><span class="cle">Documents</span><span class="val" id="v-nbdoc">—</span></div>
+      <div class="fiche"><span class="cle">En service</span><span class="val" id="v-uptime">—</span></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Commandes</h2>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <button class="bouton" id="btn-ecoute">Activer le micro</button>
+        <button class="bouton sourd" id="btn-silence">Couper la voix</button>
+        <button class="bouton sourd" id="btn-analyser-pc">Analyser mon PC</button>
+        <button class="bouton rouge" id="btn-purger">Effacer l'historique</button>
+      </div>
+    </section>
+  </aside>
+
+  <!-- ================= TERMINAL ================= -->
+  <main class="centre">
+    <div class="onglets" role="tablist">
+      <button class="onglet" role="tab" aria-selected="true" data-vue="dialogue">DIALOGUE</button>
+      <button class="onglet" role="tab" aria-selected="false" data-vue="sandbox">SANDBOX</button>
+      <button class="onglet" role="tab" aria-selected="false" data-vue="reglages">RÉGLAGES</button>
+    </div>
+
+    <section class="vue visible" id="vue-dialogue">
+      <div id="journal" aria-live="polite"></div>
+      <form class="saisie" id="formulaire">
+        <input type="text" id="champ" placeholder="Parle-lui : ouvre youtube · télémétrie · retiens que mon projet est Kryptonix · aspire C:\Ultron" autocomplete="off">
+        <button type="submit" class="bouton">Envoyer</button>
+      </form>
+    </section>
+
+    <section class="vue" id="vue-sandbox">
+      <div class="saisie" style="border-bottom:1px solid var(--arete);border-top:none">
+        <label for="langage-code" style="font-family:var(--mono);font-size:.72rem;color:var(--sourd);margin-right:10px">Langage</label>
+        <select id="langage-code" style="background:var(--panneau);border:1px solid var(--arete);color:var(--givre);font-family:var(--mono);font-size:.78rem;padding:8px 10px">
+          <option value="python">Python</option>
+          <option value="javascript">JavaScript (Node.js)</option>
+          <option value="html">HTML (aperçu)</option>
+          <option value="css">CSS (aperçu)</option>
+          <option value="bash">Bash</option>
+          <option value="c">C</option>
+          <option value="cpp">C++</option>
+          <option value="java">Java</option>
+          <option value="perl">Perl</option>
+        </select>
+        <button class="bouton sourd" id="btn-exemple" type="button" style="margin-left:10px">Exemple</button>
+      </div>
+      <textarea id="zone-code" spellcheck="false"></textarea>
+      <div class="saisie" style="border-top:none">
+        <button class="bouton" id="btn-executer" type="button">Exécuter</button>
+        <button class="bouton sourd" id="btn-vider" type="button">Vider</button>
+        <span style="font-family:var(--mono);font-size:.72rem;color:var(--sourd)" id="etat-code"></span>
+      </div>
+      <pre id="sortie-code"></pre>
+      <iframe id="apercu-code" sandbox="allow-scripts" title="Aperçu HTML / CSS"></iframe>
+    </section>
+
+    <section class="vue" id="vue-reglages">
+      <div class="reglage-groupe">
+        <h3>Couleur de l'interface</h3>
+        <div class="nuances" id="nuances-palette">
+          <button class="nuance" data-palette="cristal" style="--case:#8fd9ff" aria-pressed="true" title="Cristal (par défaut)"></button>
+          <button class="nuance" data-palette="ambre" style="--case:#ffc266" title="Ambre"></button>
+          <button class="nuance" data-palette="magenta" style="--case:#ff8fd9" title="Magenta"></button>
+          <button class="nuance" data-palette="emeraude" style="--case:#8fffc2" title="Émeraude"></button>
+          <button class="nuance" data-palette="violet" style="--case:#c28fff" title="Violet"></button>
+          <button class="nuance" data-palette="mono" style="--case:#e6e6e6" title="Monochrome"></button>
+        </div>
+      </div>
+
+      <div class="reglage-groupe">
+        <h3>Forme des éléments</h3>
+        <div class="formes" id="choix-forme">
+          <button data-forme="nette" aria-pressed="true">Angles nets</button>
+          <button data-forme="douce">Angles arrondis</button>
+        </div>
+      </div>
+
+      <div class="reglage-groupe">
+        <h3>Taille de l'interface</h3>
+        <div class="tailles" id="choix-taille">
+          <button data-taille="compacte">Compacte</button>
+          <button data-taille="normale" aria-pressed="true">Normale</button>
+          <button data-taille="grande">Grande</button>
+        </div>
+      </div>
+
+      <div class="reglage-groupe">
+        <h3>Voix</h3>
+        <div class="reglage-ligne">
+          <label for="reg-voix-active">Voix activée</label>
+          <input type="checkbox" id="reg-voix-active">
+        </div>
+        <div class="reglage-ligne">
+          <label for="choix-moteur">Moteur vocal</label>
+          <select id="choix-moteur">
+            <option value="auto">Automatique (recommandé)</option>
+            <option value="edge">Voix neuronale (en ligne, très réaliste)</option>
+            <option value="pyttsx3">Voix du système (hors ligne)</option>
+            <option value="muet">Muet</option>
+          </select>
+        </div>
+        <div class="reglage-ligne">
+          <label for="choix-voix">Voix neuronale</label>
+          <select id="choix-voix"><option>Chargement…</option></select>
+        </div>
+        <div class="reglage-ligne">
+          <label for="choix-voix-systeme">Voix du système (hors ligne)</label>
+          <select id="choix-voix-systeme"></select>
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-vitesse">Vitesse</label>
+          <input type="range" id="reg-vitesse" min="100" max="300" step="5">
+          <span class="valeur" id="val-vitesse"></span>
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-hauteur">Hauteur (grave / aigu)</label>
+          <input type="range" id="reg-hauteur" min="-50" max="50" step="2">
+          <span class="valeur" id="val-hauteur"></span>
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-volume">Volume</label>
+          <input type="range" id="reg-volume" min="0" max="100" step="5">
+          <span class="valeur" id="val-volume"></span>
+        </div>
+        <div class="reglage-ligne">
+          <button class="bouton" id="btn-ecouter-voix" type="button">▶ Écouter la voix</button>
+          <span class="reglage-etat" id="etat-voix"></span>
+        </div>
+        <p class="aide">Chaque changement est joué tout de suite pour que tu entendes la différence.
+          La hauteur ne s'applique qu'aux voix neuronales. Sans internet, la voix du système prend le relais.</p>
+      </div>
+
+      <div class="reglage-groupe">
+        <h3>Informations en direct</h3>
+        <div class="reglage-ligne">
+          <label for="reg-defilement">Vitesse de défilement des infos</label>
+          <input type="range" id="reg-defilement" min="0" max="10" step="1">
+          <span class="valeur" id="val-defilement"></span>
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-ville">Ville de la météo</label>
+          <input type="text" id="reg-ville" maxlength="80" placeholder="Paris">
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-meteo-freq">Actualiser la météo</label>
+          <select id="reg-meteo-freq">
+            <option value="300">toutes les 5 min</option><option value="600">toutes les 10 min</option>
+            <option value="900">toutes les 15 min</option><option value="1800">toutes les 30 min</option>
+            <option value="3600">toutes les heures</option>
+          </select>
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-actus-freq">Actualiser les actualités</label>
+          <select id="reg-actus-freq">
+            <option value="300">toutes les 5 min</option><option value="600">toutes les 10 min</option>
+            <option value="900">toutes les 15 min</option><option value="1800">toutes les 30 min</option>
+            <option value="3600">toutes les heures</option><option value="7200">toutes les 2 heures</option>
+          </select>
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-telemetrie">Actualiser processeur / mémoire</label>
+          <select id="reg-telemetrie">
+            <option value="0.5">toutes les 0,5 s</option><option value="1">toutes les secondes</option>
+            <option value="2">toutes les 2 s</option><option value="5">toutes les 5 s</option>
+            <option value="10">toutes les 10 s</option><option value="30">toutes les 30 s</option>
+          </select>
+        </div>
+        <div class="reglage-bloc">
+          <label for="reg-flux">Sources d'actualités (une adresse RSS par ligne)</label>
+          <textarea id="reg-flux" rows="3" spellcheck="false"></textarea>
+          <button class="bouton sourd" id="btn-flux" type="button">Enregistrer les sources</button>
+        </div>
+      </div>
+
+      <div class="reglage-groupe">
+        <h3>Assistant</h3>
+        <div class="reglage-ligne">
+          <label for="reg-nom">Comment doit-il t'appeler ?</label>
+          <input type="text" id="reg-nom" maxlength="40" placeholder="Monsieur">
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-creativite">Créativité des réponses</label>
+          <input type="range" id="reg-creativite" min="0" max="1.5" step="0.05">
+          <span class="valeur" id="val-creativite"></span>
+        </div>
+        <div class="reglage-ligne">
+          <label for="choix-modele">Modèle d'IA utilisé</label>
+          <select id="choix-modele"></select>
+        </div>
+        <div class="reglage-ligne">
+          <label for="choix-modele-dl">Télécharger un autre modèle</label>
+          <select id="choix-modele-dl"></select>
+        </div>
+        <div class="reglage-ligne">
+          <button class="bouton" id="btn-modele-dl" type="button">Télécharger</button>
+          <span class="reglage-etat" id="etat-modele"></span>
+        </div>
+        <p class="aide">Un modèle plus petit répond plus vite sur un PC modeste ; un plus gros répond mieux.
+          Le téléchargement se fait en arrière-plan, tu peux continuer à discuter.</p>
+      </div>
+
+      <div class="reglage-groupe">
+        <h3>Médias : écouter, voir, comprendre</h3>
+        <div class="reglage-ligne">
+          <label>Mon oreille (messages vocaux, audio)</label>
+          <span class="reglage-etat" id="etat-oreille"></span>
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-precision-audio">Précision de l'oreille</label>
+          <select id="reg-precision-audio">
+            <option value="tiny">Rapide (environ 75 Mo)</option>
+            <option value="base">Équilibrée (environ 145 Mo)</option>
+            <option value="small">Précise (environ 480 Mo)</option>
+          </select>
+        </div>
+        <div class="reglage-ligne">
+          <button class="bouton sourd" id="btn-oreille" type="button">Préparer mon oreille</button>
+          <span class="reglage-etat" id="etat-oreille-action"></span>
+        </div>
+        <div class="reglage-ligne">
+          <label>Ma vue (images, vidéos)</label>
+          <span class="reglage-etat" id="etat-vue"></span>
+        </div>
+        <div class="reglage-ligne">
+          <button class="bouton sourd" id="btn-vue" type="button">Installer la vue (Moondream)</button>
+          <span class="reglage-etat" id="etat-vue-action"></span>
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-video-images">Images regardées par vidéo</label>
+          <input type="range" id="reg-video-images" min="3" max="12" step="1">
+          <span class="valeur" id="val-video-images"></span>
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-ouverture">Proposer un autre sujet quand je ne peux pas répondre</label>
+          <input type="checkbox" id="reg-ouverture">
+        </div>
+        <p class="aide">Dépose un message vocal, une photo ou une vidéo dans le panneau Ingestion : je l'écoute ou je le regarde, puis tu peux m'interroger dessus.
+          L'oreille fonctionne hors ligne une fois téléchargée. Plus de précision ou plus d'images rendent l'analyse plus lente.</p>
+      </div>
+
+      <div class="reglage-groupe">
+        <h3>Bac à sable (code)</h3>
+        <div class="reglage-ligne">
+          <label for="reg-sandbox-active">Autoriser l'exécution de code</label>
+          <input type="checkbox" id="reg-sandbox-active">
+        </div>
+        <div class="reglage-ligne">
+          <label for="reg-sandbox-delai">Durée maximale d'exécution</label>
+          <input type="range" id="reg-sandbox-delai" min="2" max="60" step="1">
+          <span class="valeur" id="val-sandbox-delai"></span>
+        </div>
+      </div>
+
+      <div class="reglage-etat" id="etat-reglages"></div>
+    </section>
+  </main>
+
+  <!-- ================= DOCUMENTS ================= -->
+  <aside class="colonne">
+    <section class="bloc">
+      <h2>Ingestion</h2>
+      <div class="depot" id="depot">
+        Dépose un fichier ici<br>ou <label for="fichier">choisis-en un</label>
+        <input type="file" id="fichier" multiple accept="audio/*,image/*,video/*,.pdf,.txt,.log,.md,.csv,.json,.xml,.html,.py,.js,.bat,.sh,.ini,.cfg,.yaml,.yml,.srt">
+        <div style="margin-top:8px;font-family:var(--mono);font-size:.7rem" id="etat-depot">PDF, texte, code · audio · image · vidéo</div>
+      </div>
+    </section>
+
+    <section class="bloc">
+      <h2>Bibliothèque</h2>
+      <div id="liste-docs"><p class="vide">Rien d'ingéré pour l'instant.</p></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Journal du système</h2>
+      <div id="liste-evts"><p class="vide">—</p></div>
+    </section>
+
+    <section class="bloc jeu" id="jeu" aria-label="Petit jeu pendant la réflexion">
+      <h2>Pause jeu · sauteur</h2>
+      <div class="jeu-entete">
+        <span id="jeu-score">0 m</span>
+        <span id="jeu-record">record 0 m</span>
+        <span class="espace"></span>
+        <button type="button" id="jeu-pause">pause</button>
+        <button type="button" id="jeu-fermer">masquer</button>
+      </div>
+      <canvas id="toile-jeu" width="240" height="320" tabindex="0" role="img"
+              aria-label="Jeu du sauteur : monte de plateforme en plateforme sans tomber"></canvas>
+      <p class="jeu-aide">← → pour bouger (Q / D après un clic sur le jeu) · ou glisse avec la souris ou le doigt · espace : pause</p>
+    </section>
+  </aside>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const journal = $('journal');
+
+  /* ---------- horloge ---------- */
+  const tic = () => { $('horloge').textContent = new Date().toTimeString().slice(0,8); };
+  tic(); setInterval(tic, 1000);
+
+  /* ---------- journal de dialogue ---------- */
+  function ecrire(role, texte, classe) {
+    const tour = document.createElement('div');
+    tour.className = 'tour ' + (classe || (role === 'user' ? 'moi' : 'lui'));
+    const qui = document.createElement('div');
+    qui.className = 'qui';
+    qui.textContent = role === 'user' ? 'toi' : (classe === 'systeme' || classe === 'alerte' ? 'système' : 'kryptonix');
+    const dit = document.createElement('div');
+    dit.className = 'dit';
+    dit.textContent = texte;
+    tour.append(qui, dit);
+    journal.appendChild(tour);
+    journal.scrollTop = journal.scrollHeight;
+    return dit;
+  }
+
+  let attente = null;
+  function ouvrirAttente() {
+    jeuAfficher();
+    if (attente) return;
+    attente = ecrire('assistant', 'réflexion en cours');
+    attente.classList.add('curseur');
+  }
+  function fermerAttente(texte) {
+    jeuMasquer();
+    if (!attente) { ecrire('assistant', texte); return; }
+    attente.classList.remove('curseur');
+    attente.textContent = texte;
+    attente = null;
+    journal.scrollTop = journal.scrollHeight;
+  }
+
+  /* ---------- petit jeu d'arcade : le sauteur ---------- */
+  (() => {
+    const panneau = $('jeu'), toile = $('toile-jeu'), ctx = toile.getContext('2d');
+    const racine = document.documentElement;
+    const L = 240, H = 320, TAILLE = 14, PAS = 1000 / 60;                  // monde logique, 60 pas par seconde
+    const G = 0.32, REBOND = -8.6, RESSORT = -13.2, VITESSE = 2.8;
+    const SAUT = (REBOND * REBOND) / (2 * G);                              // hauteur d'un saut : environ 115
+    const CLE_RECORD = 'kryptonix.jeu.record';
+
+    let joueur, plateformes, score = 0, decor = 0, record = 0, nouveauRecord = false;
+    let fini = false, enPause = false, animId = null, dernierTemps = null, accu = 0;
+    let cible = null, derniereAction = 0, ouvertManuel = false, minuteurMasque = null, pauseVolontaire = false;
+    let couleurs = {}, arrondi = false, scoreAffiche = -1;
+    const touches = { gauche: false, droite: false };
+
+    try { record = parseInt(localStorage.getItem(CLE_RECORD) || '0', 10) || 0; } catch {}
+
+    /* ----- couleurs : celles des réglages, relues dès qu'ils changent ----- */
+    function lireCouleurs() {
+      const style = getComputedStyle(racine), v = (nom) => style.getPropertyValue(nom).trim();
+      couleurs = { faille: v('--faille'), fond: v('--fond'), arete: v('--arete'), cristal: v('--cristal'),
+                   doux: v('--cristal-sourd'), givre: v('--givre'), texte: v('--texte'),
+                   sourd: v('--sourd'), ambre: v('--ambre'), police: v('--mono') };
+      arrondi = parseFloat(v('--rayon')) > 0;                      // réglage « Forme des éléments »
+    }
+    function avecAlpha(couleur, alpha) {
+      const m = /^#([0-9a-f]{6})$/i.exec(couleur);
+      if (!m) return couleur;
+      const n = parseInt(m[1], 16);
+      return 'rgba(' + (n >> 16 & 255) + ',' + (n >> 8 & 255) + ',' + (n & 255) + ',' + alpha + ')';
+    }
+    new MutationObserver(() => { lireCouleurs(); ajuster(); })
+      .observe(racine, { attributes: true, attributeFilter: ['data-palette', 'data-forme', 'data-taille'] });
+    lireCouleurs();
+
+    /* ----- taille : s'adapte à la colonne et à la hauteur de la fenêtre, nette sur écran dense ----- */
+    function ajuster() {
+      if (!panneau.classList.contains('visible')) return;
+      const largeurMax = Math.max(120, panneau.clientWidth - 34);       // 32 de marges + 2 de bordure
+      const hauteurMax = Math.max(160, window.innerHeight * 0.5);
+      const largeur = Math.floor(Math.min(largeurMax, hauteurMax * L / H, 320));
+      const hauteur = Math.round(largeur * H / L), dpr = Math.min(window.devicePixelRatio || 1, 2);
+      toile.style.width = largeur + 'px'; toile.style.height = hauteur + 'px';
+      toile.width = Math.round(largeur * dpr); toile.height = Math.round(hauteur * dpr);
+      ctx.setTransform(toile.width / L, 0, 0, toile.height / H, 0, 0);
+    }
+    window.addEventListener('resize', ajuster);
+    if (window.ResizeObserver) new ResizeObserver(ajuster).observe(panneau);
+
+    /* ----- niveau : de plus en plus difficile, toujours faisable (écart < hauteur du saut) ----- */
+    const difficulte = () => Math.min(1, score / 700);
+    const ecart = () => 38 + 14 * difficulte() + Math.random() * (14 + 26 * difficulte());      // 38 à 92 pour un saut de 115
+    function creerPlateforme(y) {
+      const d = difficulte(), w = Math.round(64 - 26 * d);                                       // 64 puis 38
+      const p = { x: 6 + Math.random() * (L - w - 12), y, w, type: 'fixe', dx: 0, rebond: 0 };
+      if (score > 140 && Math.random() < 0.12 + 0.28 * d) {
+        p.type = 'mobile'; p.dx = (Math.random() < 0.5 ? -1 : 1) * (0.5 + Math.random() * 0.9 * (0.4 + d));
+      } else if (score > 40 && Math.random() < 0.09) p.type = 'ressort';
+      return p;
+    }
+    function nouvellePartie() {
+      score = 0; decor = 0; fini = false; enPause = false; nouveauRecord = false; accu = 0; dernierTemps = null;
+      plateformes = [{ x: L / 2 - 40, y: H - 14, w: 80, type: 'fixe', dx: 0, rebond: 0 }];
+      joueur = { x: L / 2, y: H - 40, vx: 0, vy: REBOND };
+      let y = H - 14;
+      while (y > -20) { y -= ecart(); plateformes.push(creerPlateforme(y)); }
+      majEntete();
+    }
+
+    /* ----- un pas de simulation (toujours 1/60 s : même vitesse sur tous les écrans) ----- */
+    function maj() {
+      let dir = (touches.droite ? 1 : 0) - (touches.gauche ? 1 : 0);
+      if (dir === 0 && cible !== null) {                                   // souris ou doigt : le sauteur rejoint le pointeur
+        const ecartX = cible - joueur.x;
+        dir = Math.abs(ecartX) < 3 ? 0 : Math.sign(ecartX) * Math.min(1, Math.abs(ecartX) / 24);
+      }
+      joueur.vx += (dir * VITESSE - joueur.vx) * (dir ? 0.35 : 0.12);      // accélération douce, léger glissement
+      const basAvant = joueur.y + TAILLE / 2;
+      joueur.vy += G; joueur.x += joueur.vx; joueur.y += joueur.vy;
+      if (joueur.x < -TAILLE / 2) joueur.x += L + TAILLE; else if (joueur.x > L + TAILLE / 2) joueur.x -= L + TAILLE;
+
+      for (const p of plateformes) {
+        if (p.type === 'mobile') { p.x += p.dx; if (p.x < 0 || p.x + p.w > L) p.dx = -p.dx; }
+        if (p.rebond > 0) p.rebond--;
+      }
+      if (joueur.vy > 0) {                                                 // on ne rebondit qu'en retombant
+        const bas = joueur.y + TAILLE / 2;
+        for (const p of plateformes) {
+          if (basAvant <= p.y + 3 && bas >= p.y && joueur.x + TAILLE / 2 > p.x && joueur.x - TAILLE / 2 < p.x + p.w) {
+            joueur.vy = p.type === 'ressort' ? RESSORT : REBOND; p.rebond = 10;
+            break;
+          }
+        }
+      }
+
+      const seuil = H * 0.4;                                               // la caméra suit la montée
+      if (joueur.y < seuil) {
+        const delta = seuil - joueur.y;
+        joueur.y = seuil; plateformes.forEach((p) => { p.y += delta; });
+        score += delta / 4; decor += delta;
+      }
+      plateformes = plateformes.filter((p) => p.y < H + 20);
+      let haut = Math.min(...plateformes.map((p) => p.y));
+      while (haut > -30) { haut -= ecart(); plateformes.push(creerPlateforme(haut)); }
+
+      if (Math.round(score) !== scoreAffiche) majEntete();
+      if (joueur.y - TAILLE > H) terminer();
+    }
+
+    function terminer() {
+      fini = true; touches.gauche = touches.droite = false; cible = null;
+      if (Math.round(score) > record) {
+        record = Math.round(score); nouveauRecord = true;
+        try { localStorage.setItem(CLE_RECORD, String(record)); } catch {}
+      }
+      majEntete();
+    }
+    function majEntete() {
+      scoreAffiche = Math.round(score);
+      $('jeu-score').textContent = scoreAffiche + ' m';
+      $('jeu-record').textContent = 'record ' + record + ' m';
+      $('jeu-pause').textContent = enPause ? 'reprendre' : 'pause';
+    }
+
+    /* ----- dessin : uniquement les couleurs du thème ----- */
+    function forme(x, y, w, h, rayon) {
+      if (arrondi && ctx.roundRect) { ctx.beginPath(); ctx.roundRect(x, y, w, h, rayon); ctx.fill(); }
+      else ctx.fillRect(x, y, w, h);
+    }
+    function dessinerSauteur(x) {
+      const h = Math.max(TAILLE - 2, Math.min(TAILLE + 5, TAILLE - joueur.vy * 0.35)), w = TAILLE * TAILLE / h;   // étiré en montée
+      ctx.fillStyle = couleurs.cristal; forme(x - w / 2, joueur.y - h / 2, w, h, 4);
+      ctx.shadowBlur = 0; ctx.fillStyle = couleurs.faille;
+      ctx.fillRect(x - w * 0.26, joueur.y - h * 0.2, 2, 3); ctx.fillRect(x + w * 0.26 - 2, joueur.y - h * 0.2, 2, 3);
+    }
+    function voile(titre, ligne1, ligne2) {
+      ctx.fillStyle = avecAlpha(couleurs.fond, 0.8); ctx.fillRect(0, 0, L, H);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = couleurs.givre; ctx.font = '600 15px ' + couleurs.police; ctx.fillText(titre, L / 2, H / 2 - 14);
+      ctx.fillStyle = couleurs.cristal; ctx.font = '12px ' + couleurs.police; ctx.fillText(ligne1, L / 2, H / 2 + 8);
+      ctx.fillStyle = couleurs.sourd; ctx.fillText(ligne2, L / 2, H / 2 + 28);
+      ctx.textAlign = 'left';
+    }
+    function dessiner() {
+      const c = couleurs;
+      ctx.fillStyle = c.faille; ctx.fillRect(0, 0, L, H);
+      ctx.strokeStyle = avecAlpha(c.arete, 0.55); ctx.lineWidth = 1; ctx.beginPath();     // quadrillage discret qui défile
+      const pas = 32, decal = (decor * 0.5) % pas;
+      for (let y = decal - pas; y < H; y += pas) { ctx.moveTo(0, y + 0.5); ctx.lineTo(L, y + 0.5); }
+      for (let x = 0; x <= L; x += pas) { ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, H); }
+      ctx.stroke();
+
+      for (const p of plateformes) {
+        ctx.fillStyle = p.type === 'mobile' ? c.texte : c.doux; forme(p.x, p.y, p.w, 6, 3);
+        if (p.type === 'ressort') {
+          const hauteur = p.rebond > 0 ? 3 : 7;
+          ctx.fillStyle = c.ambre; forme(p.x + p.w / 2 - 6, p.y - hauteur, 12, hauteur, 2);
+        }
+      }
+      ctx.shadowBlur = 10; ctx.shadowColor = avecAlpha(c.cristal, 0.55);
+      dessinerSauteur(joueur.x);
+      if (joueur.x < TAILLE) dessinerSauteur(joueur.x + L); else if (joueur.x > L - TAILLE) dessinerSauteur(joueur.x - L);
+      ctx.shadowBlur = 0;
+
+      if (fini) voile('CHUTE · ' + Math.round(score) + ' m',
+                      nouveauRecord ? 'nouveau record !' : 'record ' + record + ' m',
+                      'clic, espace ou entrée pour rejouer');
+      else if (enPause) voile('PAUSE', 'les plateformes t\'attendent', 'espace ou clic pour reprendre');
+    }
+
+    function boucle(t) {
+      animId = requestAnimationFrame(boucle);
+      if (dernierTemps === null) dernierTemps = t;
+      const dt = Math.min(100, t - dernierTemps); dernierTemps = t;
+      if (!enPause && !fini) {
+        accu += dt; let n = 0;
+        while (accu >= PAS && n < 6) { maj(); accu -= PAS; n++; if (fini) break; }
+        if (n >= 6) accu = 0;                                              // gros ralentissement : on ne rattrape pas
+      }
+      dessiner();
+    }
+
+    /* ----- pause ----- */
+    function pause(etat, automatique) {
+      if (fini) return;
+      enPause = etat === undefined ? !enPause : etat;
+      pauseVolontaire = enPause && !automatique;
+      touches.gauche = touches.droite = false; cible = null; dernierTemps = null;
+      majEntete();
+    }
+    $('jeu-pause').addEventListener('click', () => { derniereAction = performance.now(); pause(); });
+    window.addEventListener('blur', () => { if (panneau.classList.contains('visible')) pause(true, true); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden && panneau.classList.contains('visible')) pause(true, true); });
+
+    /* ----- clavier : flèches, Q/A/D (AZERTY et QWERTY), espace. Jamais pendant qu'on écrit ailleurs. ----- */
+    const GAUCHE = new Set(['ArrowLeft', 'q', 'Q', 'a', 'A']), DROITE = new Set(['ArrowRight', 'd', 'D']);
+    function peutCapter(evt) {
+      if (!panneau.classList.contains('visible')) return false;
+      const c = evt.target, nom = c && c.tagName;
+      if (nom === 'TEXTAREA' || nom === 'SELECT' || (c && c.isContentEditable)) return false;
+      if (nom === 'INPUT') {
+        if (c.type === 'range') return false;                              // les curseurs des réglages ont besoin des flèches
+        if (['checkbox', 'radio', 'button', 'file'].includes(c.type)) return true;
+        return c.id === 'champ' && c.value === '' && /^Arrow/.test(evt.key);   // champ de dialogue vide : flèches seulement
+      }
+      return true;
+    }
+    document.addEventListener('keydown', (evt) => {
+      if (evt.ctrlKey || evt.metaKey || evt.altKey || !peutCapter(evt)) return;
+      if (GAUCHE.has(evt.key)) touches.gauche = true;
+      else if (DROITE.has(evt.key)) touches.droite = true;
+      else if ((evt.key === ' ' || evt.key === 'Enter') && evt.target.tagName !== 'BUTTON' && evt.target.tagName !== 'INPUT') {
+        if (fini) nouvellePartie(); else if (evt.key === ' ') pause();
+      } else return;
+      derniereAction = performance.now();
+      evt.preventDefault();
+    });
+    document.addEventListener('keyup', (evt) => {
+      if (GAUCHE.has(evt.key)) touches.gauche = false;
+      if (DROITE.has(evt.key)) touches.droite = false;
+    });
+
+    /* ----- souris et doigt : on glisse, le sauteur suit ----- */
+    const positionX = (evt) => (evt.clientX - toile.getBoundingClientRect().left) / toile.getBoundingClientRect().width * L;
+    toile.addEventListener('pointerdown', (evt) => {
+      toile.focus({ preventScroll: true }); derniereAction = performance.now();
+      if (fini) { nouvellePartie(); return; }
+      if (enPause) { pause(false); return; }
+      cible = positionX(evt);
+      try { toile.setPointerCapture(evt.pointerId); } catch {}
+    });
+    toile.addEventListener('pointermove', (evt) => { if (cible !== null) { cible = positionX(evt); derniereAction = performance.now(); } });
+    ['pointerup', 'pointercancel'].forEach((nom) => toile.addEventListener(nom, () => { cible = null; }));
+
+    /* ----- affichage : pendant la réflexion, ou à la demande ----- */
+    function demarrer() {
+      if (animId === null) { dernierTemps = null; animId = requestAnimationFrame(boucle); }
+    }
+    window.jeuAfficher = function () {
+      clearTimeout(minuteurMasque); minuteurMasque = null;                 // une nouvelle réflexion annule un masquage prévu
+      if (panneau.classList.contains('visible')) return;
+      panneau.classList.add('visible');
+      lireCouleurs(); ajuster(); nouvellePartie(); demarrer();
+    };
+    window.jeuMasquer = function (force) {
+      if (!panneau.classList.contains('visible')) return;
+      if (force === true) { ouvertManuel = false; }
+      else {
+        if (ouvertManuel) return;                                          // ouvert exprès : c'est à toi de le fermer
+        // La page signale « veille » à chaque relevé d'état : on ne coupe donc jamais une partie en cours
+        // (touche maintenue, doigt posé, pause volontaire) ; sinon on laisse 6 s de grâce après la dernière action.
+        if (!fini && (pauseVolontaire || touches.gauche || touches.droite || cible !== null)) return;
+        if (!fini && performance.now() - derniereAction < 6000) {
+          if (!minuteurMasque) minuteurMasque = setTimeout(() => { minuteurMasque = null; window.jeuMasquer(); }, 3000);
+          return;
+        }
+      }
+      clearTimeout(minuteurMasque); minuteurMasque = null;
+      panneau.classList.remove('visible');
+      touches.gauche = touches.droite = false; cible = null;
+      if (animId !== null) { cancelAnimationFrame(animId); animId = null; }
+    };
+    $('jeu-fermer').addEventListener('click', () => window.jeuMasquer(true));
+    $('btn-jeu').addEventListener('click', () => {
+      if (panneau.classList.contains('visible')) { window.jeuMasquer(true); return; }
+      ouvertManuel = true; window.jeuAfficher(); toile.focus({ preventScroll: true });
+    });
+    new MutationObserver(() => $('btn-jeu').setAttribute('aria-pressed', String(panneau.classList.contains('visible'))))
+      .observe(panneau, { attributes: true, attributeFilter: ['class'] });
+    majEntete();
+
+    /* Lecture seule : permet de vérifier le jeu de l'extérieur (tests, diagnostic). */
+    window.jeuEtat = () => ({ score: Math.round(score), record, fini, enPause,
+                              x: joueur && joueur.x, y: joueur && joueur.y, vy: joueur && joueur.vy,
+                              plateformes: (plateformes || []).map((p) => ({ x: p.x, y: p.y, w: p.w, type: p.type })) });
+  })();
+
+  /* ---------- flux temps réel (SSE) ---------- */
+  function brancherFlux() {
+    const source = new EventSource('/api/flux');
+    source.onmessage = (evt) => {
+      let d; try { d = JSON.parse(evt.data); } catch { return; }
+      if (d.evenement === 'message' && d.source === 'voix') {
+        if (d.role === 'user') ecrire('user', d.contenu);
+        else fermerAttente(d.contenu);
+      } else if (d.evenement === 'alerte') {
+        ecrire('assistant', d.message, 'alerte');
+        chargerEvenements();
+      } else if (d.evenement === 'etat') {
+        majEtatRapide(d.etat);
+      }
+    };
+    source.onerror = () => { source.close(); setTimeout(brancherFlux, 3000); };
+  }
+
+  const LIBELLES = { veille:'veille', ecoute:'écoute', reflexion:'réflexion',
+                     parole:'parole', ingestion:'ingestion' };
+  function majEtatRapide(etat) {
+    $('t-etat').textContent = LIBELLES[etat] || etat;
+    $('d-etat').className = 'diode ' + (etat === 'veille' ? '' : 'vive');
+    if (etat === 'reflexion') jeuAfficher();
+    else if (etat === 'veille') jeuMasquer();
+  }
+
+  /* ---------- état & télémétrie ---------- */
+  function seuil(valeur) { return valeur >= 90 ? 'critique' : valeur >= 70 ? 'chaud' : ''; }
+  function barre(id, valeur) {
+    const el = $(id);
+    el.style.width = Math.min(100, valeur || 0) + '%';
+    el.className = seuil(valeur || 0);
+  }
+
+  async function rafraichir() {
+    try {
+      const d = await (await fetch('/api/etat', { cache:'no-store' })).json();
+      const t = d.telemetrie || {};
+
+      $('v-cpu').textContent = (t.cpu ?? 0).toFixed(0) + ' %';
+      $('v-ram').textContent = (t.ram ?? 0).toFixed(0) + ' % · ' + (t.ram_utilisee_go ?? 0) + '/' + (t.ram_totale_go ?? 0) + ' Go';
+      $('v-disque').textContent = (t.disque ?? 0) + ' % · ' + (t.disque_libre_go ?? 0) + ' Go libres';
+      barre('b-cpu', t.cpu); barre('b-ram', t.ram); barre('b-disque', t.disque);
+
+      $('v-os').textContent = t.os || '—';
+      $('v-proc').textContent = t.processus || '—';
+      $('v-bat').textContent = t.batterie == null ? 'secteur' : t.batterie + ' %';
+      $('v-temp').textContent = t.temperature == null ? '—' : t.temperature + ' °C';
+
+      $('v-modele').textContent = d.modele || '—';
+      $('v-voix').textContent = ({ edge: 'neuronale', pyttsx3: 'système' })[d.voix] || 'muette';
+      $('v-registre').textContent = d.registre || 'neutre';
+      $('v-msg').textContent = d.stats ? d.stats.messages : '—';
+      $('v-nbdoc').textContent = d.stats ? d.stats.documents : '—';
+      const h = Math.floor((d.uptime||0)/3600), m = Math.floor(((d.uptime||0)%3600)/60);
+      $('v-uptime').textContent = h ? h + ' h ' + m + ' min' : m + ' min';
+
+      $('d-ollama').className = 'diode ' + (d.ollama ? 'vive' : 'rouge');
+      $('t-ollama').textContent = d.ollama ? 'cerveau en ligne' : 'ollama absent';
+      $('d-micro').className = 'diode ' + (d.ecoute_active ? 'vive' : '');
+      $('t-micro').textContent = !d.micro ? 'pas de micro' : (d.ecoute_active ? 'micro actif' : 'micro en pause');
+      $('btn-ecoute').textContent = d.ecoute_active ? 'Mettre le micro en pause' : 'Activer le micro';
+      majEtatRapide(d.etat);
+    } catch {
+      $('d-ollama').className = 'diode rouge';
+      $('t-ollama').textContent = 'serveur injoignable';
+    }
+  }
+
+  /* ---------- envoi de commande ---------- */
+  $('formulaire').addEventListener('submit', async (evt) => {
+    evt.preventDefault();
+    const champ = $('champ');
+    const texte = champ.value.trim();
+    if (!texte) return;
+    champ.value = '';
+    ecrire('user', texte);
+    ouvrirAttente();
+    try {
+      const r = await fetch('/api/commande', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ texte })
+      });
+      const d = await r.json();
+      fermerAttente(d.reponse || d.erreur || 'Aucune réponse.');
+    } catch {
+      fermerAttente("Le serveur ne répond plus. Ferme puis rouvre KRYPTONIX.");
+    }
+    rafraichir(); chargerDocuments();
+  });
+
+  /* ---------- boutons ---------- */
+  $('btn-ecoute').addEventListener('click', async () => {
+    const d = await (await fetch('/api/ecoute', { method:'POST' })).json();
+    if (!d.micro) ecrire('assistant', "Aucun micro exploitable n'a été détecté sur cette machine.", 'systeme');
+    rafraichir();
+  });
+  $('btn-silence').addEventListener('click', () => fetch('/api/silence', { method:'POST' }));
+  $('btn-analyser-pc').addEventListener('click', async () => {
+    const bouton = $('btn-analyser-pc');
+    bouton.textContent = 'Analyse en cours...';
+    try {
+      const d = await (await fetch('/api/pc/analyser')).json();
+      ecrire('assistant', d.resume_parle, 'systeme');
+      if (d.gros_fichiers_oublies && d.gros_fichiers_oublies.length) {
+        const noms = d.gros_fichiers_oublies.slice(0, 5).map(f => f.nom).join(', ');
+        ecrire('assistant', 'Fichiers concernés : ' + noms, 'systeme');
+      }
+    } catch {
+      ecrire('assistant', "Impossible d'analyser le PC pour l'instant.", 'alerte');
+    }
+    bouton.textContent = 'Analyser mon PC';
+  });
+  $('btn-purger').addEventListener('click', async () => {
+    await fetch('/api/purger', { method:'POST' });
+    journal.innerHTML = '';
+    ecrire('assistant', "Historique effacé. Le profil et les documents sont intacts.", 'systeme');
+    rafraichir();
+  });
+
+  /* ---------- onglets ---------- */
+  document.querySelectorAll('.onglet').forEach((onglet) => {
+    onglet.addEventListener('click', () => {
+      document.querySelectorAll('.onglet').forEach(o => o.setAttribute('aria-selected','false'));
+      onglet.setAttribute('aria-selected','true');
+      document.querySelectorAll('.vue').forEach(v => v.classList.remove('visible'));
+      $('vue-' + onglet.dataset.vue).classList.add('visible');
+    });
+  });
+
+  /* ---------- sandbox ---------- */
+  const EXEMPLES = {
+    python: "# Les nombres premiers jusqu'à 50\nprint([n for n in range(2, 51) if all(n % d for d in range(2, n))])",
+    javascript: "console.log([1, 2, 3, 4].map((n) => n * n));",
+    bash: "echo \"Bonjour depuis Bash\"\nfor i in 1 2 3; do echo \"ligne $i\"; done",
+    c: "#include <stdio.h>\n\nint main(void) {\n    printf(\"Bonjour depuis C\\n\");\n    return 0;\n}",
+    cpp: "#include <iostream>\n\nint main() {\n    std::cout << \"Bonjour depuis C++\" << std::endl;\n}",
+    java: "public class Principal {\n    public static void main(String[] args) {\n        System.out.println(\"Bonjour depuis Java\");\n    }\n}",
+    perl: "print \"Bonjour depuis Perl\\n\";",
+    html: "<h1>Bonjour !</h1>\n<p>Clique sur le bouton :</p>\n<button onclick=\"this.textContent='Cliqué !'\">Clique-moi</button>\n\n<style>\n  body { font-family: sans-serif; text-align: center; padding: 30px; }\n  button { padding: 10px 20px; font-size: 16px; }\n</style>",
+    css: "body { background: #0e1621; color: #e6f1f8; font-family: sans-serif; }\nh1 { color: #8fd9ff; letter-spacing: 3px; }\n.carte { background: #16212e; padding: 16px; border-radius: 12px; }\nbutton { background: #8fd9ff; border: 0; padding: 8px 16px; border-radius: 6px; }",
+  };
+  const CONSIGNES = {
+    html: "<!-- Écris ton HTML ici. L'aperçu s'affiche en dessous : les scripts fonctionnent, le réseau est coupé. -->",
+    css: "/* Écris ton CSS ici. Il s'applique à une page de démonstration :\n   h1, h2, p, a, ul/li, button, input, table, .carte, .boite, #principal */",
+  };
+  const APERCU = { html: true, css: true };
+  const consigneParDefaut = "# Code exécuté dans un sous-processus isolé.\n# Imports système, réseau et écriture disque sont refusés.\nprint(sum(range(101)))";
+
+  function adapterSandbox() {
+    const langage = $('langage-code').value;
+    $('zone-code').placeholder = CONSIGNES[langage] || consigneParDefaut;
+    $('btn-executer').textContent = APERCU[langage] ? "Afficher l'aperçu" : 'Exécuter';
+    $('apercu-code').classList.remove('visible');
+    $('sortie-code').style.display = '';
+    $('sortie-code').textContent = ''; $('etat-code').textContent = '';
+  }
+  $('langage-code').addEventListener('change', adapterSandbox);
+  $('btn-exemple').addEventListener('click', () => {
+    $('zone-code').value = EXEMPLES[$('langage-code').value] || '';
+    $('zone-code').focus();
+  });
+  adapterSandbox();
+
+  $('btn-executer').addEventListener('click', async () => {
+    const code = $('zone-code').value;
+    const sortie = $('sortie-code'), cadre = $('apercu-code');
+    if (!code.trim()) { $('etat-code').textContent = "écris du code, ou clique sur « Exemple »"; return; }
+    const langage = $('langage-code').value;
+    $('etat-code').textContent = APERCU[langage] ? 'préparation...' : 'exécution...';
+    sortie.className = '';
+    try {
+      const d = await (await fetch('/api/executer', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ code, langage })
+      })).json();
+      if (d.apercu) {                       // HTML / CSS : cadre isolé
+        sortie.style.display = 'none';
+        cadre.srcdoc = d.apercu;
+        cadre.classList.add('visible');
+        $('etat-code').textContent = '';
+        return;
+      }
+      cadre.classList.remove('visible');
+      sortie.style.display = '';
+      if (d.refus) { sortie.className = 'echec'; sortie.textContent = 'Refusé : ' + d.refus; }
+      else if (d.succes) { sortie.textContent = d.sortie || '(aucune sortie)'; }
+      else { sortie.className = 'echec'; sortie.textContent = d.erreur || 'échec'; }
+      $('etat-code').textContent = d.duree ? d.duree + ' s' : '';
+    } catch {
+      cadre.classList.remove('visible');
+      sortie.style.display = '';
+      sortie.className = 'echec';
+      sortie.textContent = 'Le serveur ne répond pas.';
+      $('etat-code').textContent = '';
+    }
+  });
+  (async () => {
+    try {
+      const d = await (await fetch('/api/sandbox/langages')).json();
+      const select = $('langage-code');
+      (d.langages || []).forEach((l) => {
+        const option = select.querySelector(`option[value="${l.id}"]`);
+        if (option && !l.disponible) option.textContent += ' (non installé)';
+      });
+    } catch {}
+  })();
+  $('btn-vider').addEventListener('click', () => {
+    $('zone-code').value = ''; $('sortie-code').textContent = ''; $('etat-code').textContent = '';
+    $('apercu-code').classList.remove('visible'); $('sortie-code').style.display = '';
+  });
+
+  /* ---------- documents ---------- */
+  const depot = $('depot'), champFichier = $('fichier'), etatDepot = $('etat-depot');
+
+  const INDICE_DEPOT = 'PDF, texte, code · audio · image · vidéo';
+  const VERBES_MEDIA = { audio: "J'ai écouté", image: "J'ai regardé", video: "J'ai regardé et écouté" };
+  const attendre = (ms) => new Promise((ok) => setTimeout(ok, ms));
+
+  /* Message final après un dépôt réussi : ce que j'ai compris, les limites, et une invitation. */
+  function conclureDepot(resultat) {
+    const nom = resultat.nom;
+    const entree = VERBES_MEDIA[resultat.type] ? VERBES_MEDIA[resultat.type] + " « " + nom + " »." : "« " + nom + " » assimilé.";
+    const corps = resultat.resume
+      ? entree + "\n\n" + resultat.resume
+      : entree + " Le compte rendu attendra que mon moteur de réflexion soit en ligne, mais tout est en mémoire.";
+    const notes = (resultat.notes && resultat.notes.length) ? "\n\n" + resultat.notes.join(" ") : "";
+    return corps + notes + "\n\nPose-moi une question dessus quand tu veux.";
+  }
+
+  /* Suit une tâche de fond (transcription, vidéo…) et met la progression à jour en direct dans la conversation. */
+  async function suivreTravail(identifiant, nom, ligne) {
+    for (;;) {
+      let t;
+      try { t = await (await fetch('/api/travaux/' + identifiant)).json(); }
+      catch { await attendre(2000); continue; }
+      if (t.etat === 'termine' || t.etat === 'echec') return t;
+      const pct = t.pourcentage ? t.pourcentage + ' %' : '';
+      etatDepot.textContent = [nom, pct].filter(Boolean).join(' · ');
+      ligne.textContent = [t.message, pct && '(' + pct + ')'].filter(Boolean).join(' ');
+      await attendre(1000);
+    }
+  }
+
+  async function televerser(fichier) {
+    etatDepot.textContent = 'envoi de ' + fichier.name + '…';
+    const donnees = new FormData();
+    donnees.append('document', fichier);
+    let d;
+    try {
+      d = await (await fetch('/api/document', { method: 'POST', body: donnees })).json();
+    } catch {
+      etatDepot.textContent = 'envoi impossible';
+      ecrire('assistant', "Je n'arrive pas à joindre mon moteur pour le moment. Réessaie dans un instant, ou redémarre l'application.", 'systeme');
+      setTimeout(() => { etatDepot.textContent = INDICE_DEPOT; }, 6000);
+      return;
+    }
+
+    if (d.travail) {                       // audio, image ou vidéo : traitement long
+      const ligne = ecrire('assistant', "Je m'y mets…", 'systeme');
+      const t = await suivreTravail(d.travail, d.nom, ligne);
+      const r = t.resultat || {};
+      ligne.parentElement.remove();
+      if (t.etat === 'termine') {
+        etatDepot.textContent = d.nom + ' compris';
+        ecrire('assistant', conclureDepot(r));
+        chargerDocuments();
+      } else {
+        etatDepot.textContent = 'je n\'ai pas pu lire ' + d.nom;
+        ecrire('assistant', r.message_doux || "Je n'ai pas réussi à comprendre ce fichier, mais je reste là si tu veux essayer autre chose.");
+      }
+    } else if (d.succes) {
+      etatDepot.textContent = d.nom + ' assimilé';
+      ecrire('assistant', d.resume || (d.nom + ' est en mémoire.'), 'systeme');
+      chargerDocuments();
+    } else {
+      etatDepot.textContent = 'je n\'ai pas pu lire ' + fichier.name;
+      ecrire('assistant', d.message_doux || ("Je n'ai pas pu lire ce fichier : " + (d.erreur || 'format inconnu') + "."));
+    }
+    setTimeout(() => { etatDepot.textContent = INDICE_DEPOT; }, 6000);
+  }
+
+  async function televerserTous(fichiers) {
+    for (const fichier of fichiers) await televerser(fichier);       // un à la fois : le PC reste fluide
+  }
+
+  champFichier.addEventListener('change', () => {
+    if (champFichier.files.length) televerserTous([...champFichier.files]);
+    champFichier.value = '';
+  });
+  ['dragenter','dragover'].forEach(e => depot.addEventListener(e, () => depot.classList.add('survol')));
+  ['dragleave','drop'].forEach(e => depot.addEventListener(e, () => depot.classList.remove('survol')));
+
+  /* Dépôt n'importe où dans la fenêtre. Sans cela, lâcher un fichier à côté de la zone ferait
+     naviguer la page vers le fichier et on perdrait la conversation. */
+  ['dragover', 'drop'].forEach((nom) => window.addEventListener(nom, (evt) => {
+    if (evt.target.closest && evt.target.closest('#zone-code')) return;       // le bac à sable garde son comportement
+    evt.preventDefault();
+  }));
+  window.addEventListener('drop', (evt) => {
+    if (evt.target.closest && evt.target.closest('#zone-code')) return;
+    const fichiers = evt.dataTransfer ? [...evt.dataTransfer.files] : [];
+    if (fichiers.length) televerserTous(fichiers);
+  });
+
+  async function chargerDocuments() {
+    try {
+      const d = await (await fetch('/api/documents')).json();
+      const liste = $('liste-docs');
+      if (!d.documents.length) { liste.innerHTML = '<p class="vide">Rien d\'ingéré pour l\'instant.</p>'; return; }
+      liste.innerHTML = '';
+      d.documents.forEach((doc) => {
+        const el = document.createElement('div');
+        el.className = 'doc';
+        el.innerHTML =
+          '<div class="nom"></div><div class="meta"></div>' +
+          '<div class="doc-actions">' +
+            '<a href="/api/document/' + doc.id + '/fichier" download>télécharger</a>' +
+            '<button type="button" class="lien" data-role="etudier">étudier ce document</button>' +
+          '</div>' +
+          '<div class="doc-question">' +
+            '<input type="text" placeholder="Question sur ce document…">' +
+            '<button type="button">Demander</button>' +
+          '</div>';
+        el.querySelector('.nom').textContent = doc.nom;
+        const NOMS_TYPES = { audio: 'enregistrement', image: 'image', video: 'vidéo' };
+        el.querySelector('.meta').textContent =
+          (NOMS_TYPES[doc.type] || doc.type) + ' · ' + Math.max(1, Math.round(doc.taille/1000)) + ' k caractères';
+        el.querySelector('.nom').title = 'Afficher le compte rendu';
+        el.querySelector('.nom').addEventListener('click', async () => {
+          const r = await (await fetch('/api/document/' + doc.id + '/resume')).json();
+          ecrire('assistant', doc.nom + ' — ' + r.resume, 'systeme');
+        });
+        el.querySelector('[data-role="etudier"]').addEventListener('click', (evt) => {
+          evt.stopPropagation();
+          el.classList.toggle('ouvert');
+          if (el.classList.contains('ouvert')) el.querySelector('.doc-question input').focus();
+        });
+        const champQ = el.querySelector('.doc-question input');
+        const envoyerQuestion = async () => {
+          const question = champQ.value.trim();
+          if (!question) return;
+          champQ.value = '';
+          ecrire('user', question + '  (à propos de ' + doc.nom + ')');
+          ouvrirAttente();
+          try {
+            const r = await (await fetch('/api/document/' + doc.id + '/question', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ question })
+            })).json();
+            fermerAttente(r.reponse || r.erreur || 'Aucune réponse.');
+          } catch {
+            fermerAttente("Le serveur ne répond plus.");
+          }
+        };
+        el.querySelector('.doc-question button').addEventListener('click', (evt) => {
+          evt.stopPropagation(); envoyerQuestion();
+        });
+        champQ.addEventListener('click', (evt) => evt.stopPropagation());
+        champQ.addEventListener('keydown', (evt) => { if (evt.key === 'Enter') envoyerQuestion(); });
+        liste.appendChild(el);
+      });
+    } catch {}
+  }
+
+  /* ---------- météo ---------- */
+  async function chargerMeteo() {
+    try {
+      const d = await (await fetch('/api/meteo')).json();
+      if (!d.succes) { $('meteo-desc').textContent = d.erreur || 'indisponible'; return; }
+      $('meteo-symbole').textContent = d.symbole || '🌡';
+      $('meteo-temp').textContent = d.temperature + '°C';
+      $('meteo-desc').textContent = d.ville + ' — ' + d.description;
+      let detail = 'ressenti ' + d.ressenti + '° · vent ' + d.vent + ' km/h · humidité ' + d.humidite + ' %';
+      if (d.min_jour != null) detail += ' · ' + d.min_jour + '°/' + d.max_jour + '°';
+      $('meteo-detail').textContent = detail;
+    } catch { $('meteo-desc').textContent = 'service injoignable'; }
+  }
+
+  /* ---------- fil d'actualités ---------- */
+  async function chargerActualites() {
+    try {
+      const d = await (await fetch('/api/actualites')).json();
+      const rail = $('rail-actus');
+      if (!d.actualites || !d.actualites.length) { rail.textContent = "Aucune actualité disponible pour l'instant."; return; }
+      rail.innerHTML = '';
+      d.actualites.forEach((item) => {
+        const span = document.createElement('span');
+        span.textContent = '● ' + item.source;
+        const texte = document.createTextNode(' ' + item.titre + '  ');
+        rail.append(span, texte);
+      });
+      appliquerDefilement();
+    } catch {}
+  }
+
+  async function chargerEvenements() {
+    try {
+      const d = await (await fetch('/api/evenements')).json();
+      const liste = $('liste-evts');
+      if (!d.evenements.length) { liste.innerHTML = '<p class="vide">—</p>'; return; }
+      liste.innerHTML = '';
+      d.evenements.slice(0, 8).forEach((evt) => {
+        const el = document.createElement('div');
+        el.className = 'fiche';
+        const heure = new Date(evt.horodatage * 1000).toTimeString().slice(0,5);
+        el.innerHTML = '<span class="cle"></span><span class="val"></span>';
+        el.querySelector('.cle').textContent = heure + ' ' + evt.categorie;
+        el.querySelector('.val').textContent = evt.details || '';
+        liste.appendChild(el);
+      });
+    } catch {}
+  }
+
+  /* ---------- historique au chargement ---------- */
+  async function chargerHistorique() {
+    try {
+      const d = await (await fetch('/api/historique?limite=30')).json();
+      if (!d.messages.length) {
+        ecrire('assistant', "Console ouverte. Demande-moi la télémétrie, un site, un document à avaler, ou parle-moi simplement.", 'systeme');
+        return;
+      }
+      d.messages.forEach(m => ecrire(m.role, m.contenu));
+    } catch {
+      ecrire('assistant', "Le noyau ne répond pas encore.", 'alerte');
+    }
+  }
+
+  /* ---------- rythme des informations (piloté par l'onglet RÉGLAGES) ---------- */
+  const reglagesLive = { defilement_infos: 3, meteo_intervalle: 900,
+                         actualites_intervalle: 1800, telemetrie_intervalle: 2 };
+  const minuteurs = {};
+
+  function planifier() {
+    clearInterval(minuteurs.meteo); clearInterval(minuteurs.actus); clearInterval(minuteurs.mesure);
+    minuteurs.meteo = setInterval(chargerMeteo, reglagesLive.meteo_intervalle * 1000);
+    minuteurs.actus = setInterval(chargerActualites, reglagesLive.actualites_intervalle * 1000);
+    minuteurs.mesure = setInterval(rafraichir, Math.max(500, reglagesLive.telemetrie_intervalle * 1000));
+  }
+
+  /* Vitesse du fil d'infos : niveau 1 à 10 = 25 px par seconde et par niveau ; 0 = texte fixe. */
+  function appliquerDefilement() {
+    const niveau = Number(reglagesLive.defilement_infos);
+    const ticker = document.querySelector('.ticker'), rail = $('rail-actus');
+    ticker.classList.toggle('fixe', niveau === 0);
+    if (niveau === 0) { rail.style.animationDuration = ''; return; }
+    const secondes = Math.max(8, Math.round(rail.scrollWidth / (niveau * 25)));
+    rail.style.animationDuration = secondes + 's';
+  }
+  window.addEventListener('resize', appliquerDefilement);
+
+  /* ---------- réglages (apparence, voix, infos, assistant, bac à sable) ---------- */
+  (() => {
+    const racine = document.documentElement;
+    const etat = $('etat-reglages');
+    const ENTETES = { 'Content-Type': 'application/json' };
+    let horodateur = null;
+
+    function appliquerApparence(cle, valeur) {
+      const attribut = { apparence_palette: 'palette', apparence_forme: 'forme',
+                         apparence_taille: 'taille' }[cle];
+      if (attribut) racine.setAttribute('data-' + attribut, valeur);
+    }
+
+    function marquerGroupe(conteneurId, attribut, valeur) {
+      document.querySelectorAll('#' + conteneurId + ' [data-' + attribut + ']').forEach((bouton) => {
+        bouton.setAttribute('aria-pressed', String(bouton.dataset[attribut] === valeur));
+      });
+    }
+
+    function message(texte, erreur) {
+      etat.textContent = texte;
+      etat.className = 'reglage-etat' + (erreur ? ' erreur' : '');
+      clearTimeout(horodateur);
+      if (!erreur) horodateur = setTimeout(() => { etat.textContent = ''; }, 2500);
+    }
+
+    /* ----- envoi d'un réglage au serveur (+ effet immédiat côté page) ----- */
+    async function envoyer(champs, ecouter) {
+      Object.entries(champs).forEach(([cle, valeur]) => {
+        appliquerApparence(cle, valeur);
+        if (cle in reglagesLive) reglagesLive[cle] = Number(valeur);
+      });
+      if ('defilement_infos' in champs) appliquerDefilement();
+      if (['meteo_intervalle', 'actualites_intervalle', 'telemetrie_intervalle'].some((c) => c in champs)) planifier();
+
+      message('enregistrement…');
+      try {
+        const r = await fetch('/api/reglages', { method: 'POST', headers: ENTETES, body: JSON.stringify(champs) });
+        const d = await r.json();
+        if (d.erreurs && Object.keys(d.erreurs).length) { message(Object.values(d.erreurs).join(' · '), true); return false; }
+        message('enregistré ✓');
+        if ('ville_meteo' in champs) chargerMeteo();
+        if ('flux_rss' in champs) chargerActualites();
+        if ('ollama_modele' in champs) rafraichir();
+        if (ecouter) await ecouterVoix();
+        return true;
+      } catch {
+        message("échec de l'enregistrement", true);
+        return false;
+      }
+    }
+
+    /* ----- test de la voix : dit quel moteur a réellement parlé ----- */
+    async function ecouterVoix() {
+      const e = $('etat-voix'), bouton = $('btn-ecouter-voix');
+      e.className = 'reglage-etat'; e.textContent = 'lecture en cours…'; bouton.disabled = true;
+      try {
+        const d = await (await fetch('/api/voix/tester', { method: 'POST', headers: ENTETES, body: '{}' })).json();
+        if (!d.succes) { e.className = 'reglage-etat erreur'; e.textContent = d.erreur || 'lecture impossible'; }
+        else if (d.repli) { e.className = 'reglage-etat avert';
+          e.textContent = 'voix neuronale injoignable (internet ?) : voix du système utilisée'; }
+        else { e.textContent = d.moteur === 'edge' ? 'voix neuronale ✓' : 'voix du système ✓'; }
+      } catch {
+        e.className = 'reglage-etat erreur'; e.textContent = 'le serveur ne répond pas';
+      } finally { bouton.disabled = false; }
+    }
+
+    /* ----- curseurs : valeur affichée en direct, envoi au relâchement ----- */
+    function curseur(id, cle, formater, ecouter) {
+      const champ = $(id), valeur = $('val-' + id.replace(/^reg-/, ''));
+      const afficher = () => { valeur.textContent = formater(Number(champ.value)); };
+      champ.addEventListener('input', afficher);
+      champ.addEventListener('change', () => { afficher(); envoyer({ [cle]: Number(champ.value) }, ecouter); });
+      return (v) => { champ.value = v; afficher(); };
+    }
+    const fixer = {};
+    fixer.vitesse = curseur('reg-vitesse', 'vitesse_voix',
+      (v) => v + ' mots/min', true);
+    fixer.hauteur = curseur('reg-hauteur', 'hauteur_voix',
+      (v) => (v > 0 ? '+' : '') + v + ' Hz', true);
+    fixer.volume = curseur('reg-volume', 'volume_voix', (v) => v + ' %', true);
+    fixer.defilement = curseur('reg-defilement', 'defilement_infos',
+      (v) => v === 0 ? 'arrêté' : 'niveau ' + v + ' / 10', false);
+    fixer.creativite = curseur('reg-creativite', 'temperature',
+      (v) => v.toFixed(2).replace('.', ','), false);
+    fixer.delai = curseur('reg-sandbox-delai', 'sandbox_timeout', (v) => v + ' s', false);
+    fixer.imagesVideo = curseur('reg-video-images', 'video_images', (v) => v + ' images', false);
+
+    /* ----- apparence ----- */
+    document.querySelectorAll('#nuances-palette .nuance').forEach((bouton) => {
+      bouton.addEventListener('click', () => {
+        marquerGroupe('nuances-palette', 'palette', bouton.dataset.palette);
+        envoyer({ apparence_palette: bouton.dataset.palette });
+      });
+    });
+    document.querySelectorAll('#choix-forme button').forEach((bouton) => {
+      bouton.addEventListener('click', () => {
+        marquerGroupe('choix-forme', 'forme', bouton.dataset.forme);
+        envoyer({ apparence_forme: bouton.dataset.forme });
+      });
+    });
+    document.querySelectorAll('#choix-taille button').forEach((bouton) => {
+      bouton.addEventListener('click', () => {
+        marquerGroupe('choix-taille', 'taille', bouton.dataset.taille);
+        envoyer({ apparence_taille: bouton.dataset.taille });
+      });
+    });
+
+    /* ----- voix ----- */
+    $('reg-voix-active').addEventListener('change', (e) => envoyer({ voix_active: e.target.checked }, e.target.checked));
+    $('choix-moteur').addEventListener('change', (e) => envoyer({ moteur_tts: e.target.value }, true));
+    $('choix-voix').addEventListener('change', (e) => envoyer({ voix_style: e.target.value }, true));
+    $('choix-voix-systeme').addEventListener('change', (e) => envoyer({ voix_systeme: e.target.value }, true));
+    $('btn-ecouter-voix').addEventListener('click', ecouterVoix);
+
+    /* ----- informations en direct ----- */
+    $('reg-ville').addEventListener('change', (e) => envoyer({ ville_meteo: e.target.value }));
+    $('reg-meteo-freq').addEventListener('change', (e) => envoyer({ meteo_intervalle: Number(e.target.value) }));
+    $('reg-actus-freq').addEventListener('change', (e) => envoyer({ actualites_intervalle: Number(e.target.value) }));
+    $('reg-telemetrie').addEventListener('change', (e) => envoyer({ telemetrie_intervalle: Number(e.target.value) }));
+    $('btn-flux').addEventListener('click', () => envoyer({ flux_rss: $('reg-flux').value }));
+
+    /* ----- assistant & bac à sable ----- */
+    $('reg-nom').addEventListener('change', (e) => envoyer({ nom_utilisateur: e.target.value }));
+    $('choix-modele').addEventListener('change', (e) => envoyer({ ollama_modele: e.target.value }));
+    $('reg-sandbox-active').addEventListener('change', (e) => envoyer({ sandbox_active: e.target.checked }));
+    $('reg-ouverture').addEventListener('change', (e) => envoyer({ ouverture_sujets: e.target.checked }));
+    $('reg-precision-audio').addEventListener('change', async (e) => {
+      await envoyer({ modele_audio: e.target.value });
+      chargerEtatMedias();
+    });
+
+    /* ----- les « sens » : état de l'oreille et de la vue ----- */
+    async function chargerEtatMedias() {
+      try {
+        const d = await (await fetch('/api/medias/etat')).json();
+        const o = d.oreille, oreille = $('etat-oreille'), vue = $('etat-vue');
+        oreille.className = 'reglage-etat';
+        if (!d.ffmpeg) { oreille.className = 'reglage-etat erreur'; oreille.textContent = "l'outil audio est introuvable (réinstalle l'application)"; }
+        else if (o.moteur === 'faster-whisper' && o.hors_ligne) oreille.textContent = 'prête, hors ligne · ' + o.precision;
+        else if (o.moteur === 'faster-whisper') { oreille.className = 'reglage-etat avert'; oreille.textContent = 'à télécharger une fois · ' + o.precision; }
+        else if (o.moteur === 'google') { oreille.className = 'reglage-etat avert'; oreille.textContent = 'mode secours en ligne (moins précis)'; }
+        else { oreille.className = 'reglage-etat erreur'; oreille.textContent = 'indisponible'; }
+        $('btn-oreille').disabled = !!(o.moteur === 'faster-whisper' && o.hors_ligne) || o.moteur !== 'faster-whisper';
+
+        vue.className = 'reglage-etat';
+        if (d.vue.modele) { vue.textContent = 'prête : ' + d.vue.modele; $('btn-vue').disabled = true; }
+        else { vue.className = 'reglage-etat avert'; vue.textContent = 'pas encore installée'; $('btn-vue').disabled = false; }
+      } catch {}
+    }
+
+    $('btn-oreille').addEventListener('click', async () => {
+      const e = $('etat-oreille-action'); e.className = 'reglage-etat'; e.textContent = 'téléchargement…';
+      $('btn-oreille').disabled = true;
+      try {
+        const { travail } = await (await fetch('/api/medias/oreille/preparer', { method: 'POST' })).json();
+        for (;;) {
+          const t = await (await fetch('/api/travaux/' + travail)).json();
+          e.textContent = t.message;
+          if (t.etat === 'termine') { e.textContent = 'oreille prête ✓'; break; }
+          if (t.etat === 'echec') { e.className = 'reglage-etat erreur'; break; }
+          await new Promise((ok) => setTimeout(ok, 1500));
+        }
+      } catch { e.className = 'reglage-etat erreur'; e.textContent = 'le serveur ne répond pas'; }
+      chargerEtatMedias();
+    });
+
+    $('btn-vue').addEventListener('click', async () => {
+      const e = $('etat-vue-action'); e.className = 'reglage-etat';
+      try {
+        const d = await (await fetch('/api/modeles/telecharger', { method: 'POST', headers: ENTETES,
+          body: JSON.stringify({ nom: 'moondream' }) })).json();
+        if (!d.succes) { e.className = 'reglage-etat erreur'; e.textContent = d.erreur || 'échec'; return; }
+        suivreTelechargement('etat-vue-action', 'btn-vue');
+      } catch { e.className = 'reglage-etat erreur'; e.textContent = 'le serveur ne répond pas'; }
+    });
+
+    /* ----- listes déroulantes alimentées par le serveur ----- */
+    function remplirVoix(catalogue, actuelle, actuelleSysteme) {
+      const choix = $('choix-voix');
+      choix.innerHTML = '';
+      const groupes = [
+        ['Françaises, très naturelles', (v) => v.lieu.startsWith('fr-') && v.multilingue],
+        ['Françaises', (v) => v.lieu.startsWith('fr-') && !v.multilingue],
+        ['Autres langues, très naturelles (parlent français)', (v) => !v.lieu.startsWith('fr-')],
+      ];
+      groupes.forEach(([titre, filtre]) => {
+        const voix = catalogue.neuronales.filter(filtre);
+        if (!voix.length) return;
+        const groupe = document.createElement('optgroup'); groupe.label = titre;
+        voix.forEach((v) => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.libelle; groupe.appendChild(o); });
+        choix.appendChild(groupe);
+      });
+      if (actuelle && ![...choix.options].some((o) => o.value === actuelle)) {
+        const o = document.createElement('option'); o.value = actuelle; o.textContent = actuelle; choix.appendChild(o);
+      }
+      choix.value = actuelle;
+      choix.disabled = !catalogue.edge_disponible;
+
+      const systeme = $('choix-voix-systeme');
+      systeme.innerHTML = '<option value="">Automatique (voix française)</option>';
+      catalogue.systeme.forEach((v) => { const o = document.createElement('option'); o.value = v.id; o.textContent = v.libelle; systeme.appendChild(o); });
+      systeme.value = actuelleSysteme || '';
+      systeme.disabled = !catalogue.systeme_disponible;
+    }
+
+    async function chargerModeles(actuel) {
+      try {
+        const d = await (await fetch('/api/modeles')).json();
+        const choix = $('choix-modele'); choix.innerHTML = '';
+        const noms = [...d.installes];
+        if (d.actuel && !noms.includes(d.actuel)) noms.unshift(d.actuel);
+        noms.forEach((n) => { const o = document.createElement('option'); o.value = n; o.textContent = n; choix.appendChild(o); });
+        choix.value = d.actuel || actuel;
+        const dl = $('choix-modele-dl'); dl.innerHTML = '';
+        d.suggestions.forEach((m) => { const o = document.createElement('option'); o.value = m.id; o.textContent = m.libelle; dl.appendChild(o); });
+        if (d.telechargement.actif) suivreTelechargement();
+      } catch {}
+    }
+
+    async function suivreTelechargement(idEtat = 'etat-modele', idBouton = 'btn-modele-dl') {
+      const e = $(idEtat), bouton = $(idBouton);
+      bouton.disabled = true;
+      for (;;) {
+        try {
+          const d = await (await fetch('/api/modeles')).json();
+          const t = d.telechargement;
+          if (t.actif) { e.className = 'reglage-etat'; e.textContent = t.nom + ' : ' + t.pourcentage + ' % · ' + t.message; }
+          else {
+            if (t.erreur) { e.className = 'reglage-etat erreur'; e.textContent = t.erreur; }
+            else if (idEtat === 'etat-modele') { e.className = 'reglage-etat'; e.textContent = t.nom + " prêt ✓ (choisis-le dans « Modèle d'IA utilisé »)"; }
+            else { e.className = 'reglage-etat'; e.textContent = t.nom + ' installé ✓'; }
+            bouton.disabled = false;
+            chargerModeles();
+            chargerEtatMedias();
+            return;
+          }
+        } catch {}
+        await new Promise((ok) => setTimeout(ok, 1500));
+      }
+    }
+    $('btn-modele-dl').addEventListener('click', async () => {
+      const e = $('etat-modele');
+      try {
+        const r = await fetch('/api/modeles/telecharger', { method: 'POST', headers: ENTETES,
+          body: JSON.stringify({ nom: $('choix-modele-dl').value }) });
+        const d = await r.json();
+        if (!d.succes) { e.className = 'reglage-etat erreur'; e.textContent = d.erreur || 'échec'; return; }
+        suivreTelechargement();
+      } catch { e.className = 'reglage-etat erreur'; e.textContent = 'le serveur ne répond pas'; }
+    });
+
+    /* ----- chargement initial ----- */
+    async function initialiser() {
+      let r = {};
+      try { r = await (await fetch('/api/reglages')).json(); } catch { return; }
+
+      ['apparence_palette', 'apparence_forme', 'apparence_taille'].forEach((cle) => appliquerApparence(cle, r[cle]));
+      marquerGroupe('nuances-palette', 'palette', r.apparence_palette || 'cristal');
+      marquerGroupe('choix-forme', 'forme', r.apparence_forme || 'nette');
+      marquerGroupe('choix-taille', 'taille', r.apparence_taille || 'normale');
+
+      $('reg-voix-active').checked = r.voix_active !== false;
+      $('choix-moteur').value = r.moteur_tts || 'auto';
+      fixer.vitesse(r.vitesse_voix ?? 185); fixer.hauteur(r.hauteur_voix ?? 0); fixer.volume(r.volume_voix ?? 100);
+
+      Object.assign(reglagesLive, {
+        defilement_infos: r.defilement_infos ?? 3, meteo_intervalle: r.meteo_intervalle ?? 900,
+        actualites_intervalle: r.actualites_intervalle ?? 1800, telemetrie_intervalle: r.telemetrie_intervalle ?? 2 });
+      fixer.defilement(reglagesLive.defilement_infos);
+      $('reg-ville').value = r.ville_meteo || '';
+      $('reg-meteo-freq').value = String(reglagesLive.meteo_intervalle);
+      $('reg-actus-freq').value = String(reglagesLive.actualites_intervalle);
+      $('reg-telemetrie').value = String(reglagesLive.telemetrie_intervalle);
+      $('reg-flux').value = (r.flux_rss || []).join('\n');
+      appliquerDefilement(); planifier();
+
+      $('reg-nom').value = r.nom_utilisateur || '';
+      fixer.creativite(r.temperature ?? 0.75);
+      $('reg-precision-audio').value = r.modele_audio || 'base';
+      fixer.imagesVideo(r.video_images ?? 6);
+      $('reg-ouverture').checked = r.ouverture_sujets !== false;
+      chargerEtatMedias();
+      $('reg-sandbox-active').checked = r.sandbox_active !== false;
+      fixer.delai(r.sandbox_timeout ?? 12);
+
+      chargerModeles(r.ollama_modele);
+      try {
+        const catalogue = await (await fetch('/api/voix/liste')).json();
+        remplirVoix(catalogue, r.voix_style, r.voix_systeme);
+      } catch { $('choix-voix').innerHTML = '<option>indisponible</option>'; }
+    }
+    initialiser();
+  })();
+
+  chargerHistorique(); chargerDocuments(); chargerEvenements();
+  chargerMeteo(); chargerActualites();
+  planifier();
+    rafraichir().then(() => {}).catch(() => {});
+  setInterval(chargerEvenements, 20000);
+  brancherFlux();
+  $('champ').focus();
+})();
+</script>
+<script>/* signal de vie vers l'application */setInterval(function(){fetch("/api/battement").catch(function(){})},5000);fetch("/api/battement").catch(function(){});</script>
+</body>
+</html>

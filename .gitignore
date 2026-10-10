@@ -1,0 +1,12 @@
+# Environnement et sorties de construction
+.venv/
+build/
+dist/
+sortie/
+__pycache__/
+*.pyc
+
+# Données personnelles (en mode développement : python app.py)
+donnees/
+logs/
+config.local.json

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ nom }} — Cockpit financier</title>
+<style>
+:root{--fond:#070b12;--carte:#0e1522;--arete:#1d2a3f;--texte:#d8e4f5;--doux:#7d90ad;--accent:#37d6ff;--ok:#3ddc97;--mal:#ff5d73;--att:#ffb84d}
+*{box-sizing:border-box}body{margin:0;background:var(--fond);color:var(--texte);font:14px/1.45 "Segoe UI",system-ui,sans-serif}
+header{display:flex;gap:14px;align-items:center;padding:14px 22px;border-bottom:1px solid var(--arete);flex-wrap:wrap}
+h1{font-size:18px;margin:0;letter-spacing:.12em}h1 b{color:var(--accent)}a{color:var(--accent);text-decoration:none}nav{margin-left:auto;display:flex;gap:14px}
+.local{background:#0f2a1f;color:var(--ok);border:1px solid #1d5a3f;border-radius:8px;padding:6px 12px;font-size:12px}
+main{max-width:1100px;margin:0 auto;padding:18px;display:grid;gap:16px}
+section{background:var(--carte);border:1px solid var(--arete);border-radius:10px;padding:16px 18px}h2{margin:0 0 12px;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--doux)}
+.cartes{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.k{background:#0a111c;border:1px solid var(--arete);border-radius:8px;padding:12px}.k b{display:block;font-size:24px;color:var(--accent)}.k span{color:var(--doux);font-size:12px}
+table{width:100%;border-collapse:collapse}td,th{padding:7px 8px;border-bottom:1px solid var(--arete);text-align:left}th{color:var(--doux);font-weight:500;font-size:12px}
+button,select,input{font:inherit;color:var(--texte);background:#0a111c;border:1px solid var(--arete);border-radius:6px;padding:6px 10px}button{cursor:pointer}button:hover{border-color:var(--accent)}button.p{background:var(--accent);color:#04202a;font-weight:600;border-color:var(--accent)}
+.ligne{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.mal{color:var(--mal)}.ok{color:var(--ok)}.att{color:var(--att)}
+#msg{position:fixed;bottom:16px;right:16px;background:var(--carte);border:1px solid var(--accent);padding:10px 14px;border-radius:8px;display:none}
+</style>
+</head>
+<body>
+<header><h1>{{ nom|upper }} <b>·</b> COCKPIT FINANCIER</h1><span class="local">🔒 100 % local — ces données ne quittent jamais ta machine et ne sont jamais lues par l'IA</span>
+<nav><a href="/">← Assistant</a><a href="/panneau">Panneau</a></nav></header>
+<main>
+<section><div class="cartes"><div class="k"><b id="k-m">—</b><span>par mois en abonnements</span></div><div class="k"><b id="k-a">—</b><span>par an</span></div>
+<div class="k"><b id="k-n">—</b><span>abonnements actifs</span></div><div class="k"><b id="k-t">—</b><span>transactions importées</span></div></div></section>
+
+<section><h2>Abonnements</h2>
+<table><thead><tr><th>Nom</th><th>Montant</th><th>Rythme</th><th>Prochaine échéance</th><th>≈ / mois</th><th></th></tr></thead><tbody id="abos"></tbody></table>
+<div class="ligne"><input id="a-nom" placeholder="Nom (ex. Netflix)"><input id="a-mnt" type="number" step="0.01" placeholder="Montant €" style="width:110px">
+<select id="a-per"><option>mensuel</option><option>annuel</option><option>trimestriel</option><option>hebdo</option></select><input id="a-date" type="date"><button class="p" onclick="ajouterAbo()">Ajouter</button></div></section>
+
+<section><h2>Abonnements détectés — à confirmer</h2><div id="cands"></div>
+<div class="ligne"><button onclick="detecter()">Relancer la détection (transactions + reçus Gmail)</button></div></section>
+
+<section><h2>Prochaines échéances (45 jours)</h2><table><tbody id="ech"></tbody></table>
+<div class="ligne"><input id="e-lib" placeholder="Libellé (ex. Impôts)"><input id="e-mnt" type="number" step="0.01" placeholder="Montant €" style="width:110px"><input id="e-date" type="date"><button class="p" onclick="ajouterEch()">Ajouter</button></div></section>
+
+<section><h2>Importer un relevé bancaire (CSV)</h2>
+<p style="color:var(--doux);margin:0 0 8px">Colonnes reconnues automatiquement : date, libellé, montant (ou débit / crédit). Séparateur « ; » ou « , ». Les doublons sont ignorés. Le fichier est lu par ton navigateur et envoyé uniquement à cette machine.</p>
+<div class="ligne"><input type="file" id="csv" accept=".csv,.txt"><button class="p" onclick="importer()">Importer</button></div></section>
+</main><div id="msg"></div>
+<script>
+const $=s=>document.querySelector(s);const J=(u,o)=>fetch(u,o).then(r=>r.json());
+const P=(u,d,m='POST')=>J(u,{method:m,headers:{'Content-Type':'application/json'},body:JSON.stringify(d||{})});
+const eur=n=>(+n).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const F={hebdo:52/12,mensuel:1,trimestriel:1/3,annuel:1/12};
+function dire(t){const m=$('#msg');m.textContent=t;m.style.display='block';setTimeout(()=>m.style.display='none',4200)}
+async function charger(){const r=await J('/api/finances/resume');
+ $('#k-m').textContent=eur(r.mensuel);$('#k-a').textContent=eur(r.annuel);$('#k-n').textContent=r.abonnements.length;$('#k-t').textContent=r.transactions;
+ $('#abos').innerHTML=r.abonnements.map(a=>`<tr><td>${esc(a.nom)}</td><td>${eur(a.montant)}</td><td>${a.periodicite}</td><td>${a.prochaine||'—'}</td><td>${eur(a.montant*(F[a.periodicite]||1))}</td><td><button onclick="suppr(${a.id})">Supprimer</button></td></tr>`).join('')||'<tr><td colspan="6" style="color:var(--doux)">Aucun abonnement.</td></tr>';
+ $('#cands').innerHTML=r.candidats.length?'<table><tbody>'+r.candidats.map(c=>`<tr><td>${esc(c.nom)}</td><td>${eur(c.montant||0)} ${c.periodicite||''}</td><td style="color:var(--doux)">via ${c.source}${c.occurrences>1?' ('+c.occurrences+' fois)':''}</td><td><button class="p" onclick="cand(${c.id},'accepter')">C'est un abonnement</button> <button onclick="cand(${c.id},'rejeter')">Non</button></td></tr>`).join('')+'</tbody></table>':'<span style="color:var(--doux)">Aucun candidat. Importe un relevé CSV pour lancer la détection.</span>';
+ const auj=new Date().toISOString().slice(0,10);
+ $('#ech').innerHTML=r.echeances.map(e=>`<tr><td class="${e.date<auj?'mal':e.date<=new Date(Date.now()+7*864e5).toISOString().slice(0,10)?'att':''}">${e.date.split('-').reverse().join('/')}</td><td>${esc(e.libelle)}</td><td>${e.montant?eur(e.montant):''}</td><td style="color:var(--doux)">${e.origine}</td><td>${e.origine==='échéance'?`<button onclick="payee(${e.id})">Payée</button>`:''}</td></tr>`).join('')||'<tr><td style="color:var(--doux)">Rien à venir.</td></tr>'}
+async function ajouterAbo(){const r=await P('/api/finances/abonnement',{nom:$('#a-nom').value,montant:$('#a-mnt').value,periodicite:$('#a-per').value,prochaine:$('#a-date').value});if(!r.succes)return dire(r.erreur);$('#a-nom').value=$('#a-mnt').value='';charger()}
+async function suppr(i){if(confirm('Supprimer cet abonnement ?')){await J('/api/finances/abonnement/'+i,{method:'DELETE'});charger()}}
+async function cand(i,a){await P('/api/finances/candidat/'+i+'/'+a);charger()}
+async function ajouterEch(){const r=await P('/api/finances/echeance',{libelle:$('#e-lib').value,montant:$('#e-mnt').value,date:$('#e-date').value});if(!r.succes)return dire(r.erreur);$('#e-lib').value='';charger()}
+async function payee(i){await P('/api/finances/echeance/'+i+'/payee');charger()}
+async function detecter(){const r=await P('/api/finances/detecter');dire(r.nouveaux+' nouveau(x) candidat(s)');charger()}
+async function importer(){const f=$('#csv').files[0];if(!f)return dire('Choisis un fichier CSV.');const r=await J('/api/finances/import',{method:'POST',body:await f.arrayBuffer()});
+ dire(r.succes?`${r.nouvelles} transaction(s) importée(s), ${r.doublons} doublon(s), ${r.candidats} abonnement(s) détecté(s).`:r.erreur);charger()}
+charger();
+</script>
+</body></html>
