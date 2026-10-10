@@ -1,0 +1,50 @@
+name: Construire et publier KRYPTONIX
+
+# Se déclenche quand tu pousses un tag de version, par exemple v1.0.0
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Version et dépôt injectés dans l'application
+        shell: pwsh
+        run: |
+          $v = "${{ github.ref_name }}".TrimStart("v")
+          if ("${{ github.ref_type }}" -ne "tag") { $v = "0.0.0" }
+          Set-Content noyau/version.py "VERSION = `"$v`""
+          Set-Content ressources/depot.txt "${{ github.repository }}" -NoNewline
+          echo "VERSION=$v" >> $env:GITHUB_ENV
+
+      - name: Dépendances
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt pyinstaller
+
+      - name: Construire l'application
+        run: pyinstaller kryptonix.spec --noconfirm
+
+      - name: Construire l'installateur
+        run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DMaVersion=$env:VERSION installateur\kryptonix.iss
+
+      - name: Publier la release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: sortie/Kryptonix-Setup.exe
+          generate_release_notes: true
